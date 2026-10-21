@@ -55,7 +55,7 @@ jobs:
         run: ./build/publish.ps1
 
       - name: Upload the published build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CodeScope-windows-x64
           path: publish/CodeScope
@@ -96,7 +96,7 @@ jobs:
         run: ./build/build-installer.ps1 -OutputDir "${{ github.workspace }}/installer-output"
 
       - name: Upload the installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CodeScope-Setup
           path: installer-output
@@ -133,7 +133,7 @@ jobs:
         run: ./build/publish.ps1 -SelfContained
 
       - name: Upload the self-contained build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CodeScope-windows-x64-self-contained
           path: publish/CodeScope
