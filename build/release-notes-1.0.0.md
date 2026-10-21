@@ -4,7 +4,7 @@ A native Windows desktop application for [**scc**](https://github.com/boyter/scc
 the fast and accurate code-counting and complexity engine by **Ben Boyter**.
 
 CodeScope analyses a codebase with the pinned, frozen engine and shows the
-result as a rich in-app dashboard — or as scc's own self-contained HTML
+result as a rich in-app dashboard â€” or as scc's own self-contained HTML
 infographic. Everything runs on your machine: no network access, no cloud, no
 telemetry, and nothing is ever written to the folder you analyse.
 
@@ -20,7 +20,7 @@ function `scc --report` calls.
 
 * Upstream project: <https://github.com/boyter/scc>
 * Copyright: Copyright (c) 2021 Ben Boyter
-* Licence: MIT — the full text ships in `vendor/scc-source/LICENSE` and in
+* Licence: MIT â€” the full text ships in `vendor/scc-source/LICENSE` and in
   every release
 
 This repository contains a **byte-for-byte snapshot** of scc `4.1.0`
@@ -30,7 +30,7 @@ This repository contains a **byte-for-byte snapshot** of scc `4.1.0`
 scc also vendors its own Go dependencies, each keeping its own licence.
 
 **CodeScope is an independent project. It is not affiliated with, endorsed by,
-or supported by the scc project.** Its own code is MIT licensed as well — see
+or supported by the scc project.** Its own code is MIT licensed as well â€” see
 [LICENSE](https://github.com/JuggyBob/CodeScope/blob/main/LICENSE) and
 [THIRD-PARTY-NOTICES.md](https://github.com/JuggyBob/CodeScope/blob/main/THIRD-PARTY-NOTICES.md).
 
@@ -41,7 +41,7 @@ or supported by the scc project.** Its own code is MIT licensed as well — see
 * **Pick a folder** with the native Windows folder picker. The app validates it
   and detects whether it lives inside a Git repository.
 * **Choose the report contents.** Every optional section the engine supports
-  has its own switch, and turning one off omits it from *both* output modes —
+  has its own switch, and turning one off omits it from *both* output modes â€”
   the section really is absent, never merely hidden.
 * **Fine-tune the analysis.** Ignores, extension filters, large-file limits,
   minified and generated detection, language remapping, ULOC, cognitive
@@ -93,7 +93,7 @@ or supported by the scc project.** Its own code is MIT licensed as well — see
    (this needs administrator rights, because a runtime is installed for the
    whole machine). If you would rather not install anything, use the
    self-contained zip.
-2. Press **Browse…**, choose a folder, and press **Analyze Codebase**.
+2. Press **Browseâ€¦**, choose a folder, and press **Analyze Codebase**.
 3. Read the report. Double-click a row in any file-bearing table to open that
    file in File Explorer.
 
@@ -107,7 +107,7 @@ cannot run this application. The modern **.NET 8** runtime is *not*
 preinstalled on any Windows version, so it has to be installed once:
 
 * [.NET 8 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/8.0)
-  — about a minute, one time per machine.
+  â€” about a minute, one time per machine.
 * Check what you already have with `dotnet --list-runtimes`. A line starting
   with `Microsoft.WindowsDesktop.App 8.` means you are done.
 
@@ -120,10 +120,10 @@ support Windows 7 or 8.1.
 
 | | In-app report | HTML export |
 | --- | --- | --- |
-| Produced by | `codescope-export.exe` → JSON → WPF | `scc.exe --report=<path>` |
+| Produced by | `codescope-export.exe` â†’ JSON â†’ WPF | `scc.exe --report=<path>` |
 | Files written | none, ever | one `.html`, where you choose |
 | Section selection | `--report-skip` | `--report-skip` |
-| Share card (`og:image`) | n/a — it is an HTML concept | included unless switched off |
+| Share card (`og:image`) | n/a â€” it is an HTML concept | included unless switched off |
 
 Both modes run from the same configuration object, so the numbers and the
 section selection can never drift apart.
@@ -132,7 +132,7 @@ section selection can never drift apart.
 
 * The application makes **no network request of any kind**. It cannot phone
   home because it has no code that can.
-* The **in-app report writes nothing** — not to the analysed folder, not
+* The **in-app report writes nothing** â€” not to the analysed folder, not
   anywhere else.
 * The HTML export writes exactly one `.html` file, to a folder you choose.
 * Your settings and the analysis history live in
@@ -157,8 +157,8 @@ powershell -ExecutionPolicy Bypass -File build\publish.ps1
 ```
 
 You need the .NET 8 SDK and the Go toolchain the snapshot asks for
-(1.26.4). The application itself has **no NuGet packages** — every capability
-is built on the .NET 8 base class library and WPF — so a restore needs no
+(1.26.4). The application itself has **no NuGet packages** â€” every capability
+is built on the .NET 8 base class library and WPF â€” so a restore needs no
 package feed and the build works offline.
 
 The Windows installer needs [Inno Setup 6](https://jrsoftware.org/isdl.php):
@@ -178,13 +178,13 @@ dotnet run --project tests\CodeScope.Tests -c Release
 
 ## Contributing
 
-Issues and pull requests are welcome — see
+Issues and pull requests are welcome â€” see
 [CONTRIBUTING.md](https://github.com/JuggyBob/CodeScope/blob/main/CONTRIBUTING.md)
 for the development setup, the branching rules and the pull-request workflow,
 and [CODE_OF_CONDUCT.md](https://github.com/JuggyBob/CodeScope/blob/main/CODE_OF_CONDUCT.md)
 for the behaviour we expect from everyone taking part.
 
-Security problems should not go in the tracker — see
+Security problems should not go in the tracker â€” see
 [SECURITY.md](https://github.com/JuggyBob/CodeScope/blob/main/SECURITY.md).
 
 ## Licence
