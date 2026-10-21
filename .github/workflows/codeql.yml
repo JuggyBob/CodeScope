@@ -27,6 +27,13 @@ jobs:
       matrix:
         language: [csharp]
 
+    # The build output and the frozen upstream snapshot are not our code: the
+    # first is generated, the second belongs to the scc project.
+    paths-ignore:
+      - '**/bin/**'
+      - '**/obj/**'
+      - 'vendor/**'
+
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
@@ -47,10 +54,6 @@ jobs:
           # The build is a step of its own, after this one, so the tracer sees
           # the code as it is compiled.
           build-mode: none
-        paths-ignore:
-          - '**/bin/**'
-          - '**/obj/**'
-          - 'vendor/**'
 
       - name: Build
         run: dotnet build CodeScope.sln -c Release
