@@ -56,6 +56,11 @@ $args = @(
     '-p:PublishSingleFile=true',
     '-p:IncludeNativeLibrariesForSelfExtract=false',
     '-p:DebugType=none',
+    # The committed lock file describes the runtime-agnostic restore that CI
+    # locks against. A publish restores for one runtime identifier, which is a
+    # different graph, so it writes its lock file beside the output instead of
+    # rewriting the one in the repository.
+    "-p:NuGetLockFilePath=$(Join-Path $output 'publish.lock.json')",
     '--nologo'
 )
 
