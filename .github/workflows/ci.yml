@@ -22,15 +22,15 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           # The version the frozen snapshot asks for; the build script refuses
           # to download a different toolchain.
@@ -55,7 +55,7 @@ jobs:
         run: ./build/publish.ps1
 
       - name: Upload the published build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CodeScope-windows-x64
           path: publish/CodeScope
@@ -70,15 +70,15 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: vendor/scc-source/go.mod
           cache: false
@@ -96,7 +96,7 @@ jobs:
         run: ./build/build-installer.ps1 -OutputDir "${{ github.workspace }}/installer-output"
 
       - name: Upload the installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CodeScope-Setup
           path: installer-output
@@ -111,15 +111,15 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: vendor/scc-source/go.mod
           cache: false
@@ -133,7 +133,7 @@ jobs:
         run: ./build/publish.ps1 -SelfContained
 
       - name: Upload the self-contained build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CodeScope-windows-x64-self-contained
           path: publish/CodeScope
