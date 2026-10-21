@@ -16,6 +16,7 @@ self-contained HTML infographic.
 
 ## Contents
 
+- [Download](#download)
 - [Requirements](#requirements)
 - [Quickstart](#quickstart)
 - [What it does](#what-it-does)
@@ -28,6 +29,18 @@ self-contained HTML infographic.
 - [Design notes](#design-notes)
 - [Contributing](#contributing)
 - [Licence](#licence)
+
+---
+
+## Download
+
+Get it from the [releases page](https://github.com/JuggyBob/CodeScope/releases):
+
+| Asset | Size | What it is |
+| --- | --- | --- |
+| `CodeScope-Setup.exe` | ~65 MB | The installer. Installs for the current user, adds a Start menu shortcut and a proper uninstaller, and can add the .NET 8 desktop runtime if the machine does not have it. |
+| `CodeScope-portable.zip` | ~11 MB | The application with no installer at all. Unzip it anywhere and run `CodeScope.exe`. |
+| `CodeScope-windows-x64-self-contained.zip` | ~68 MB | The application with the whole .NET runtime inside, so it runs on a clean Windows machine with nothing installed. |
 
 ---
 
