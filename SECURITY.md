@@ -57,9 +57,13 @@ Anything that could:
 
 | Version | Supported |
 | --- | --- |
-| 0.1.x | Yes |
+| 1.0.x | Yes |
+| 1.0.0 | Yes — the first public release |
+| < 1.0.0 | No |
 
-Until the project reaches 1.0, fixes land on the latest minor release.
+Fixes land on the latest minor release. There has never been a release before
+1.0.0, so there is nothing older to patch; if an issue is found in 1.0.0 it
+will be fixed in 1.0.1.
 
 ## What the application does and does not do
 

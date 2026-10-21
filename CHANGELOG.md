@@ -16,7 +16,7 @@ step.
 
 Nothing yet.
 
-## [0.1.0] — 2026-10-21
+## [1.0.0] — 2026-10-21
 
 The first public release.
 
