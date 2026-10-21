@@ -67,7 +67,7 @@ page. All complaints will be reviewed and investigated promptly and fairly.
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.
 
-[advisories]: https://github.com/<owner>/<repository>/security/advisories/new
+[advisories]: https://github.com/JuggyBob/<repository>/security/advisories/new
 
 ## Enforcement Guidelines
 

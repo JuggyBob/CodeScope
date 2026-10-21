@@ -17,7 +17,7 @@ body:
     attributes:
       label: CodeScope version
       description: The version from the application, or the commit you built from.
-      placeholder: "0.1.0"
+      placeholder: "1.0.0"
     validations:
       required: true
 

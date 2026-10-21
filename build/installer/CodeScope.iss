@@ -14,9 +14,9 @@
 ; ---------------------------------------------------------------------------
 
 #define MyAppName "CodeScope"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "the CodeScope contributors"
-#define MyAppUrl "https://github.com/<owner>/CodeScope"
+#define MyAppUrl "https://github.com/JuggyBob/CodeScope"
 #define MyAppExeName "CodeScope.exe"
 #define MyAppId "{{B7A9C1E4-3D52-4C8A-9E11-6F2D5A0B7C34}"
 #define MyRuntimeVersion "8.0.31"

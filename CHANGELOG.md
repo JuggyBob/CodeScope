@@ -74,5 +74,5 @@ The first public release.
   inside an analysed project.
 - The application makes no network request of any kind.
 
-[Unreleased]: https://github.com/<owner>/CodeScope/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/<owner>/CodeScope/releases/tag/v0.1.0
+[Unreleased]: https://github.com/JuggyBob/CodeScope/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/JuggyBob/CodeScope/releases/tag/v1.0.0

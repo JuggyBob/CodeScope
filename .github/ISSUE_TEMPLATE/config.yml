@@ -4,7 +4,7 @@ contact_links:
     url: https://docs.github.com/en/code-security/security-advisories/guidelines/reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
     about: Please report security problems privately — see SECURITY.md. Do not open a public issue for them.
   - name: Question or discussion
-    url: https://github.com/<owner>/CodeScope/discussions
+    url: https://github.com/JuggyBob/CodeScope/discussions
     about: Ask a question or start a discussion about using the application.
   - name: The upstream engine
     url: https://github.com/boyter/scc/issues

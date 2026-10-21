@@ -10,6 +10,10 @@
     <RootNamespace>CodeScope</RootNamespace>
     <AssemblyName>CodeScope</AssemblyName>
     <Product>CodeScope</Product>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Copyright>Copyright (c) 2026 JuggyBob. MIT licensed.</Copyright>
     <Description>A native Windows GUI for the scc code-analysis engine.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\CodeScope.ico</ApplicationIcon>
