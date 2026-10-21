@@ -44,6 +44,9 @@ jobs:
           # they report the deliberate catch-alls and the vendored snapshot
           # as findings, which drowns the ones that matter.
           queries: security-extended
+          # The build output and the frozen upstream snapshot are not our
+          # code; the configuration keeps them out of the analysis.
+          config-file: ./.github/codeql-config.yml
           # The build is a step of its own, after this one, so the tracer sees
           # the code as it is compiled.
           build-mode: none

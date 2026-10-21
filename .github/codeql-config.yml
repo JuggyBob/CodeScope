@@ -1,0 +1,9 @@
+# CodeQL configuration.
+#
+# The analysis covers this project's own code. The build output is generated,
+# and the frozen upstream snapshot under vendor/ belongs to the scc project,
+# not to us.
+paths-ignore:
+  - '**/bin/**'
+  - '**/obj/**'
+  - 'vendor/**'
