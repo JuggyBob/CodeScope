@@ -1,0 +1,116 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ===================== Dark charcoal interface ===================== -->
+
+  <Color x:Key="BgColor">#15181C</Color>
+  <Color x:Key="SurfaceColor">#1C2025</Color>
+  <Color x:Key="SurfaceAltColor">#22272E</Color>
+  <Color x:Key="SurfaceHoverColor">#272C34</Color>
+  <Color x:Key="BorderColor">#2E343C</Color>
+  <Color x:Key="BorderStrongColor">#3B424C</Color>
+
+  <Color x:Key="TextPrimaryColor">#E9ECF0</Color>
+  <Color x:Key="TextSecondaryColor">#9BA4AF</Color>
+  <Color x:Key="TextTertiaryColor">#6B7480</Color>
+
+  <Color x:Key="AccentColor">#2DD4BF</Color>
+  <Color x:Key="AccentForegroundColor">#062B26</Color>
+  <Color x:Key="AccentSubtleColor">#1E3B37</Color>
+
+  <Color x:Key="DangerColor">#F87171</Color>
+  <Color x:Key="SuccessColor">#34D399</Color>
+  <Color x:Key="WarningColor">#FBBF24</Color>
+  <Color x:Key="WarningSubtleColor">#3A2F15</Color>
+
+  <Color x:Key="GridLineColor">#262B31</Color>
+  <Color x:Key="SelectionColor">#1F3D3A</Color>
+
+  <!-- Series palette: distinct, legible on charcoal -->
+  <Color x:Key="Series1Color">#2DD4BF</Color>
+  <Color x:Key="Series2Color">#60A5FA</Color>
+  <Color x:Key="Series3Color">#A78BFA</Color>
+  <Color x:Key="Series4Color">#F472B6</Color>
+  <Color x:Key="Series5Color">#FBBF24</Color>
+  <Color x:Key="Series6Color">#34D399</Color>
+  <Color x:Key="Series7Color">#F87171</Color>
+  <Color x:Key="Series8Color">#94A3B8</Color>
+
+  <SolidColorBrush x:Key="BgBrush" Color="{StaticResource BgColor}" />
+  <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+  <SolidColorBrush x:Key="SurfaceAltBrush" Color="{StaticResource SurfaceAltColor}" />
+  <SolidColorBrush x:Key="SurfaceHoverBrush" Color="{StaticResource SurfaceHoverColor}" />
+  <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+  <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
+
+  <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+  <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
+
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="AccentForegroundBrush" Color="{StaticResource AccentForegroundColor}" />
+  <SolidColorBrush x:Key="AccentSubtleBrush" Color="{StaticResource AccentSubtleColor}" />
+
+  <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+  <SolidColorBrush x:Key="WarningSubtleBrush" Color="{StaticResource WarningSubtleColor}" />
+
+  <SolidColorBrush x:Key="GridLineBrush" Color="{StaticResource GridLineColor}" />
+  <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource SelectionColor}" />
+
+  <SolidColorBrush x:Key="Series1Brush" Color="{StaticResource Series1Color}" />
+  <SolidColorBrush x:Key="Series2Brush" Color="{StaticResource Series2Color}" />
+  <SolidColorBrush x:Key="Series3Brush" Color="{StaticResource Series3Color}" />
+  <SolidColorBrush x:Key="Series4Brush" Color="{StaticResource Series4Color}" />
+  <SolidColorBrush x:Key="Series5Brush" Color="{StaticResource Series5Color}" />
+  <SolidColorBrush x:Key="Series6Brush" Color="{StaticResource Series6Color}" />
+  <SolidColorBrush x:Key="Series7Brush" Color="{StaticResource Series7Color}" />
+  <SolidColorBrush x:Key="Series8Brush" Color="{StaticResource Series8Color}" />
+
+
+  <!--
+    Interaction overlays. Hover and press feedback is drawn by fading one of
+    these over a surface, which keeps the animation smooth and identical in
+    every theme instead of hard-coding a colour per state.
+  -->
+  <Color x:Key="HoverOverlayColor">#14FFFFFF</Color>
+  <Color x:Key="PressOverlayColor">#24FFFFFF</Color>
+  <Color x:Key="HeaderTintColor">#1AFFFFFF</Color>
+  <Color x:Key="AccentHoverColor">#1A000000</Color>
+  <Color x:Key="AccentPressColor">#33000000</Color>
+  <Color x:Key="ScrimColor">#B3000000</Color>
+  <SolidColorBrush x:Key="HoverOverlayBrush" Color="{StaticResource HoverOverlayColor}" />
+  <SolidColorBrush x:Key="PressOverlayBrush" Color="{StaticResource PressOverlayColor}" />
+  <SolidColorBrush x:Key="HeaderTintBrush" Color="{StaticResource HeaderTintColor}" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentPressBrush" Color="{StaticResource AccentPressColor}" />
+  <SolidColorBrush x:Key="ScrimBrush" Color="{StaticResource ScrimColor}" />
+
+  <!-- The sidebar sits a shade above the page so the split reads clearly. -->
+  <Color x:Key="SidebarColor">#191D22</Color>
+  <SolidColorBrush x:Key="SidebarBrush" Color="{StaticResource SidebarColor}" />
+
+
+  <!--
+    WPF's stock controls (scrollbar corners, grid chrome, selection visuals)
+    reach for the system brushes. Re-pointing those keys at the theme palette is
+    what stops stray white rectangles appearing on the dark surfaces.
+  -->
+  <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="{StaticResource SurfaceColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{StaticResource SurfaceColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="{StaticResource BorderStrongColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkDarkBrushKey}" Color="{StaticResource BorderStrongColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="{StaticResource TextTertiaryColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="{StaticResource SelectionColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{StaticResource SelectionColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="{StaticResource SurfaceColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuHighlightBrushKey}" Color="{StaticResource SurfaceHoverColor}" />
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuBarBrushKey}" Color="{StaticResource SurfaceColor}" />
+
+</ResourceDictionary>

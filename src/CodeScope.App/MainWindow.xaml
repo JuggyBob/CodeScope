@@ -1,0 +1,325 @@
+<Window x:Class="CodeScope.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:CodeScope.ViewModels"
+        xmlns:views="clr-namespace:CodeScope.Views"
+        xmlns:controls="clr-namespace:CodeScope.Controls"
+        Title="CodeScope"
+        Icon="/Assets/CodeScope.ico"
+        Height="860" Width="1280"
+        MinWidth="980" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="Segoe UI"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
+
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:MainViewModel}">
+      <views:ConfigView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReportViewModel}">
+      <views:ReportView />
+    </DataTemplate>
+  </Window.Resources>
+
+  <Window.InputBindings>
+    <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
+    <KeyBinding Modifiers="Alt" Key="G" Command="{Binding GenerateCommand}" />
+    <KeyBinding Modifiers="Alt" Key="S" Command="{Binding OpenSettingsCommand}" />
+    <KeyBinding Modifiers="Ctrl" Key="B" Command="{Binding ToggleSidebarCommand}" />
+  </Window.InputBindings>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- ==================== body: sidebar + content ==================== -->
+    <Grid Grid.Row="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- ============ history sidebar ============ -->
+      <Border x:Name="SidebarPanel"
+              Grid.Column="0"
+              Width="0"
+              ClipToBounds="True"
+              Background="{DynamicResource SidebarBrush}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="0,0,1,0">
+        <Grid x:Name="SidebarContent" Opacity="0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <!-- brand -->
+          <StackPanel Grid.Row="0" Margin="20,22,20,20">
+            <StackPanel Orientation="Horizontal">
+              <Grid Width="28" Height="28" Margin="0,0,12,0">
+                <Grid.Resources>
+                  <Style TargetType="Rectangle">
+                    <Setter Property="RadiusX" Value="3" />
+                    <Setter Property="RadiusY" Value="3" />
+                  </Style>
+                </Grid.Resources>
+                <Rectangle Fill="{DynamicResource AccentBrush}" Width="11" Height="11" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                <Rectangle Fill="{DynamicResource Series2Brush}" Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="0.85" />
+                <Rectangle Fill="{DynamicResource Series5Brush}" Width="11" Height="11" HorizontalAlignment="Left" VerticalAlignment="Center" Opacity="0.7" />
+                <Rectangle Fill="{DynamicResource Series3Brush}" Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0.6" />
+                <Rectangle Fill="{DynamicResource Series6Brush}" Width="11" Height="11" HorizontalAlignment="Left" VerticalAlignment="Bottom" Opacity="0.5" />
+                <Rectangle Fill="{DynamicResource Series4Brush}" Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.4" />
+              </Grid>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="CodeScope" FontSize="17" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="A GUI for the frozen scc engine" FontSize="11"
+                           Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,1,0,0" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- history header -->
+          <Grid Grid.Row="1" Margin="20,0,14,10">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="History" Style="{StaticResource MicroLabelStyle}"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="2" Style="{StaticResource IconButtonStyle}" Padding="6"
+                    Command="{Binding ClearHistoryCommand}" ToolTip="Clear the stored runs"
+                    Visibility="{Binding HasHistory, Converter={StaticResource BoolToVisibility}}">
+              <controls:IconView Geometry="{StaticResource IconTrash}" Stroke="{DynamicResource TextTertiaryBrush}"
+                                StrokeThickness="1.4" Width="13" Height="13" />
+            </Button>
+          </Grid>
+
+          <!-- history list -->
+          <Grid Grid.Row="2" Margin="12,0,8,0">
+            <ListBox ItemsSource="{Binding History}"
+                     ItemContainerStyle="{StaticResource SidebarListItemStyle}"
+                     Background="Transparent" BorderThickness="0"
+                     Foreground="{DynamicResource TextPrimaryBrush}"
+                     SelectionChanged="OnHistorySelectionChanged"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     Visibility="{Binding HasHistory, Converter={StaticResource BoolToVisibility}}">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                      <TextBlock Text="{Binding ProjectName}" FontSize="13" FontWeight="SemiBold"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding WhenText}" FontSize="11.5"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,2,0,0" />
+                      <TextBlock Text="{Binding MetricsText}" FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                      <Border Style="{StaticResource PillStyle}" Padding="8,2" Margin="0,0,4,0">
+                        <TextBlock Text="{Binding ModeText}" FontSize="10"
+                                   Foreground="{DynamicResource AccentBrush}" />
+                      </Border>
+                      <Button Style="{StaticResource IconButtonStyle}" Padding="6" Width="30" Height="30"
+                              ToolTip="Show the folder in File Explorer"
+                              Command="{Binding DataContext.RevealHistoryFolderCommand,
+                                                RelativeSource={RelativeSource AncestorType=ListBox}}"
+                              CommandParameter="{Binding}">
+                        <controls:IconView Geometry="{StaticResource IconFolder}" Stroke="{DynamicResource TextTertiaryBrush}"
+                                          StrokeThickness="1.5" Width="15" Height="15" />
+                      </Button>
+                      <Button Style="{StaticResource IconButtonStyle}" Padding="6" Width="30" Height="30"
+                              ToolTip="Remove this run"
+                              Command="{Binding DataContext.DeleteHistoryEntryCommand,
+                                                RelativeSource={RelativeSource AncestorType=ListBox}}"
+                              CommandParameter="{Binding}">
+                        <controls:IconView Geometry="{StaticResource IconTrash}" Stroke="{DynamicResource TextTertiaryBrush}"
+                                          StrokeThickness="1.5" Width="15" Height="15" />
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- empty state -->
+            <StackPanel VerticalAlignment="Top" Margin="8,6,12,0"
+                        Visibility="{Binding HasHistory, Converter={StaticResource InvertedBoolToVisibility}}">
+              <controls:IconView Geometry="{StaticResource IconClock}" Stroke="{DynamicResource TextTertiaryBrush}"
+                                StrokeThickness="1.3" Width="18" Height="18" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding HistoryEmptyText}" Style="{StaticResource EmptyStateStyle}"
+                         Margin="0,10,0,0" />
+            </StackPanel>
+          </Grid>
+
+          <!-- footer: settings, presets, collapse -->
+          <StackPanel Grid.Row="3" Margin="12,10,12,14">
+            <Border Style="{StaticResource DividerStyle}" Margin="8,0,8,10" />
+            <Button Style="{StaticResource SidebarButtonStyle}" Command="{Binding OpenSettingsCommand}"
+                    ToolTip="Theme, preferences and backend information (Alt+S)">
+              <StackPanel Orientation="Horizontal">
+                <!-- The icon is drawn on a 24-unit grid and scaled as a whole,
+                     so the knobs stay on their rails at every size. -->
+                <Viewbox Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center">
+                  <Canvas Width="24" Height="24">
+                    <Path Data="{StaticResource IconSliders}" Stroke="{DynamicResource TextSecondaryBrush}"
+                          StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    <Ellipse Canvas.Left="6.5" Canvas.Top="4.5" Width="5" Height="5"
+                             Fill="{DynamicResource TextSecondaryBrush}" />
+                    <Ellipse Canvas.Left="12.5" Canvas.Top="14.5" Width="5" Height="5"
+                             Fill="{DynamicResource TextSecondaryBrush}" />
+                  </Canvas>
+                </Viewbox>
+                <TextBlock Text="Settings" Margin="12,0,0,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Style="{StaticResource SidebarButtonStyle}" Command="{Binding SavePresetCommand}"
+                    ToolTip="Save the current configuration as a preset">
+              <StackPanel Orientation="Horizontal">
+                <controls:IconView Geometry="{StaticResource IconBookmark}" Stroke="{DynamicResource TextSecondaryBrush}"
+                                  StrokeThickness="1.5" Width="15" Height="15" VerticalAlignment="Center" />
+                <TextBlock Text="Save preset" Margin="12,0,0,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13" />
+              </StackPanel>
+            </Button>
+            <Button Style="{StaticResource SidebarButtonStyle}" Command="{Binding ToggleSidebarCommand}"
+                    ToolTip="Hide the sidebar (Ctrl+B)">
+              <StackPanel Orientation="Horizontal">
+                <controls:IconView Geometry="{StaticResource IconChevronLeft}" Stroke="{DynamicResource TextSecondaryBrush}"
+                                  StrokeThickness="1.6" Width="15" Height="15" VerticalAlignment="Center" />
+                <TextBlock Text="Collapse" Margin="12,0,0,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- ============ content column ============ -->
+      <Grid Grid.Column="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- application bar -->
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Padding="14,11">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Style="{StaticResource SidebarToggleStyle}"
+                    Command="{Binding ToggleSidebarCommand}"
+                    ToolTip="Show or hide the history sidebar (Ctrl+B)">
+              <Viewbox Width="17" Height="17" Stretch="Uniform">
+                <Canvas Width="24" Height="24">
+                  <Path Data="{StaticResource IconPanel}" Stroke="{DynamicResource TextSecondaryBrush}"
+                        StrokeThickness="1.4" StrokeLineJoin="Round" />
+                  <!-- The accent marks the column the sidebar lives in. -->
+                  <Path Data="M 5.5 6 V 13" Stroke="{DynamicResource AccentBrush}"
+                        StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Canvas>
+              </Viewbox>
+            </Button>
+
+            <StackPanel Grid.Column="1" Margin="16,0,12,0" VerticalAlignment="Center" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding ActiveViewTitle}" FontSize="16" FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding ActiveViewSubtitle}" FontSize="11.5"
+                         Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,1,0,0"
+                         HorizontalAlignment="Left" TextTrimming="CharacterEllipsis" MaxWidth="520" />
+            </StackPanel>
+
+            <Border Grid.Column="2" Style="{StaticResource PillStyle}"
+                    Background="{DynamicResource SurfaceAltBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" Padding="12,5">
+              <TextBlock Text="{Binding BackendStatus}" FontSize="11.5"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </Border>
+          </Grid>
+        </Border>
+
+        <!-- the active view -->
+        <Grid x:Name="ViewHost" Grid.Row="1">
+          <ContentControl x:Name="ViewContent" Content="{Binding ActiveView}" />
+        </Grid>
+      </Grid>
+    </Grid>
+
+    <!-- ==================== status bar ==================== -->
+    <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+            Padding="16,9">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <ProgressBar Grid.Column="0" Width="90" Margin="0,0,10,0"
+                     VerticalAlignment="Center"
+                     Style="{StaticResource IndeterminateProgressStyle}"
+                     IsIndeterminate="{Binding IsIndeterminate}"
+                     Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+
+        <!-- The status lives in its own box and grows with the message. -->
+        <Border Grid.Column="1" Background="{DynamicResource SurfaceAltBrush}"
+                CornerRadius="{StaticResource RadiusPill}" Padding="12,5" VerticalAlignment="Center"
+                MinWidth="96">
+          <TextBlock Text="{Binding StatusMessage}"
+                     Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                     MaxWidth="700" TextTrimming="CharacterEllipsis"
+                     VerticalAlignment="Center" />
+        </Border>
+
+        <Border Grid.Column="3" Background="{DynamicResource SurfaceAltBrush}"
+                CornerRadius="{StaticResource RadiusPill}" Padding="12,5" VerticalAlignment="Center"
+                Margin="14,0,0,0"
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock Text="{Binding ErrorMessage}"
+                     Foreground="{DynamicResource DangerBrush}" FontSize="11.5"
+                     VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="420" />
+        </Border>
+
+        <Border Grid.Column="4" Background="{DynamicResource SurfaceAltBrush}"
+                CornerRadius="{StaticResource RadiusPill}" Padding="12,5" VerticalAlignment="Center"
+                Margin="8,0,0,0"
+                Visibility="{Binding ElapsedText, Converter={StaticResource StringToVisibility}}">
+          <TextBlock Text="{Binding ElapsedText, StringFormat={}analyze time: {0}}"
+                     Foreground="{DynamicResource TextTertiaryBrush}" FontSize="11"
+                     VerticalAlignment="Center" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- ==================== first-run walkthrough ==================== -->
+    <Grid Grid.Row="0" Grid.RowSpan="2"
+          Visibility="{Binding IsOnboardingVisible, Converter={StaticResource BoolToVisibility}}">
+      <views:OnboardingView />
+    </Grid>
+  </Grid>
+</Window>

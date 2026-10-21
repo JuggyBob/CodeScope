@@ -1,0 +1,46 @@
+# Normalise line endings: check in LF, check out the platform's native form
+# unless a file says otherwise.
+* text=auto eol=lf
+
+# Source
+*.cs      text diff=csharp
+*.xaml   text
+*.csproj text
+*.sln    text
+*.resx   text
+*.json   text
+*.md     text
+*.yml    text
+*.yaml   text
+*.txt    text
+*.sha256 text
+*.gitignore     text
+*.gitattributes text
+.editorconfig   text
+
+# Windows scripts run under PowerShell and cmd; CRLF keeps them honest.
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+# Documentation
+docs/*.md text
+
+# Binaries — never diffed, never line-ending converted
+*.exe   binary
+*.dll   binary
+*.pdb   binary
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.zip   binary
+*.7z    binary
+*.tar   binary
+*.gz    binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.snk   binary

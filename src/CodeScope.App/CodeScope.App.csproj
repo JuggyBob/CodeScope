@@ -1,0 +1,77 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>CodeScope</RootNamespace>
+    <AssemblyName>CodeScope</AssemblyName>
+    <Product>CodeScope</Product>
+    <Description>A native Windows GUI for the scc code-analysis engine.</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\CodeScope.ico</ApplicationIcon>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS8632</NoWarn>
+
+    <!--
+      The interface is English only, so the runtime's own localised
+      resources (thirteen language packs, about fifteen megabytes) are not
+      copied into the published build.
+    -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!--
+      A lock file, so a restore always resolves to the same packages. The
+      project deliberately has no package references at all — every
+      capability is built on the .NET 8 BCL plus WPF — and the lock file
+      records exactly that.
+    -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <!-- The window/taskbar icon is the same mark the header draws with squares. -->
+  <ItemGroup>
+    <Resource Include="Assets\CodeScope.ico" />
+  </ItemGroup>
+
+  <!--
+    CodeScope deliberately carries no NuGet package references. Every capability
+    (JSON, process hosting, theming, charts, dialogs) is built on the .NET 8
+    BCL plus WPF, so `dotnet build`/`dotnet publish` needs no network access.
+  -->
+  <ItemGroup>
+    <Folder Include="Controls\" />
+    <Folder Include="Converters\" />
+    <Folder Include="Models\" />
+    <Folder Include="Resources\" />
+    <Folder Include="Services\" />
+    <Folder Include="ViewModels\" />
+    <Folder Include="Views\" />
+  </ItemGroup>
+
+  <!--
+    The frozen backend travels with the application: the two executables land
+    in backend\ next to the app so it runs on a clean Windows machine with no Go
+    toolchain, no network and no scc on PATH.
+  -->
+  <ItemGroup>
+    <None Include="..\..\backend\scc.exe" CopyToOutputDirectory="PreserveNewest"
+          Link="backend\scc.exe" Condition="Exists('..\..\backend\scc.exe')" />
+    <None Include="..\..\backend\codescope-export.exe" CopyToOutputDirectory="PreserveNewest"
+          Link="backend\codescope-export.exe" Condition="Exists('..\..\backend\codescope-export.exe')" />
+  </ItemGroup>
+
+  <!-- Provenance documentation, so a shipped build can explain its own backend. -->
+  <ItemGroup>
+    <None Include="..\..\vendor\scc-source\SNAPSHOT.md" CopyToOutputDirectory="PreserveNewest"
+          Link="vendor\scc-source\SNAPSHOT.md" Condition="Exists('..\..\vendor\scc-source\SNAPSHOT.md')" />
+    <None Include="..\..\vendor\scc-source\LICENSE" CopyToOutputDirectory="PreserveNewest"
+          Link="vendor\scc-source\LICENSE" Condition="Exists('..\..\vendor\scc-source\LICENSE')" />
+    <None Include="..\..\vendor\scc-source\SNAPSHOT-SUMS.sha256" CopyToOutputDirectory="PreserveNewest"
+          Link="vendor\scc-source\SNAPSHOT-SUMS.sha256" Condition="Exists('..\..\vendor\scc-source\SNAPSHOT-SUMS.sha256')" />
+  </ItemGroup>
+
+</Project>

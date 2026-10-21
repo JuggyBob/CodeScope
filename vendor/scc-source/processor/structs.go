@@ -1,0 +1,385 @@
+// SPDX-License-Identifier: MIT
+
+package processor
+
+import (
+	"bytes"
+	"regexp"
+	"slices"
+	"sync"
+
+	jsoniter "github.com/json-iterator/go"
+)
+
+// cognitiveJSON is the marshaler used by the FileJob / LanguageSummary
+// MarshalJSON hooks. Matched to the one formatters_json.go uses so nested
+// marshaling produces byte-identical output.
+var cognitiveJSON = jsoniter.ConfigCompatibleWithStandardLibrary
+
+// Used by trie structure to store the types
+const (
+	TString int = iota + 1
+	TSlcomment
+	TMlcomment
+	TComplexity
+	TComplexityPostfix
+)
+
+// ByteType constants for per-byte content classification.
+// When FileJob.ClassifyContent is true, CountStats populates
+// FileJob.ContentByteType with one of these values per byte.
+const (
+	ByteTypeBlank   byte = 0
+	ByteTypeCode    byte = 1
+	ByteTypeComment byte = 2
+	ByteTypeString  byte = 3
+)
+
+// Quote is a struct which holds rules and start/end values for string quotes
+type Quote struct {
+	Start        string `json:"start"`
+	End          string `json:"end"`
+	IgnoreEscape bool   `json:"ignoreEscape"` // To enable turning off the \ check for C# @"\" string examples https://github.com/boyter/scc/issues/71
+	DocString    bool   `json:"docString"`    // To enable docstring check for Python where "If the triple quote string starts following a newline with only white-space characters in front and ends followed by only a newline or white-space characters it is a comment" https://github.com/boyter/scc/issues/62
+	// Delimited marks a string that names its own closer, which is the C++ raw
+	// string R"tag(...)tag". The text between the start token and the opening
+	// bracket is read out of the file and the closer built from it, so End
+	// holds only what an empty delimiter closes with.
+	Delimited bool `json:"delimited"`
+}
+
+// Heuristic is a regex pattern used to disambiguate shared file extensions (for
+// example .h between C / C++ / Objective-C) along with a cheap set of necessary
+// string literals. The expensive regex is only run when one of Literals is
+// present in the content, which is a fast reject for the overwhelmingly common
+// case where the file is not the language being guessed. See guessByHeuristics.
+type Heuristic struct {
+	// Pattern is the regex evaluated against the file content.
+	Pattern string `json:"pattern"`
+	// Literals is the set of substrings of which at least one must be present
+	// (case sensitive) for Pattern to have any chance of matching. When empty
+	// the regex is always run, so a pattern is never silently disabled.
+	Literals []string `json:"literals"`
+	// Anchored, when true, requires each literal to sit at the start of a line
+	// preceded only by spaces or tabs. This mirrors the (?m)^[ \t]* prefix used
+	// by the keyword patterns and avoids false positives such as the substring
+	// "entry" satisfying a check for the "try" keyword.
+	Anchored bool `json:"anchored"`
+}
+
+// Language is a struct which contains the values for each language stored in languages.json
+type Language struct {
+	LineComment                     []string    `json:"line_comment"`
+	ComplexityChecks                []string    `json:"complexitychecks"`
+	ComplexityChecksPostfix         []string    `json:"complexitychecks_postfix"`
+	ComplexityChecksPostfixExcludes []string    `json:"complexitychecks_postfix_excludes"`
+	Extensions                      []string    `json:"extensions"`
+	MultiLine                       [][]string  `json:"multi_line"`
+	Quotes                          []Quote     `json:"quotes"`
+	Keywords                        []string    `json:"keywords"`
+	Heuristics                      []Heuristic `json:"heuristics"`
+	FileNames                       []string    `json:"filenames"`
+	SheBangs                        []string    `json:"shebangs"`
+	ExtensionFile                   bool        `json:"extensionFile"`
+	NestedMultiLine                 bool        `json:"nestedmultiline"`
+	// LineSplice marks a language where a backslash at the end of a line joins
+	// it to the next one before comments and strings are recognised, which is
+	// the C family and the shading languages that borrow its preprocessor.
+	LineSplice bool `json:"linesplice"`
+	// Escape is the character that escapes a delimiter inside a string. It is
+	// the backslash for nearly everything and left empty for those, PowerShell
+	// being the one that escapes with a backtick and reads a backslash as an
+	// ordinary character of a Windows path.
+	Escape string `json:"escape"`
+	// CaseInsensitive marks a language that reads its own keywords in any case,
+	// so REM, rem and rEm all open a comment. The tokens are expanded into
+	// every spelling when the language is compiled rather than the match being
+	// folded, which keeps the case out of the counting loop entirely.
+	CaseInsensitive bool `json:"caseinsensitive"`
+	// CommentIsWord marks a language where a line comment token is a word in
+	// its own right and has to stand alone to open a comment. Forth writes its
+	// comment as a backslash, which is a word like any other, so "\ x" is a
+	// comment and "\x" is not. Distinct from the boundary that a token ending
+	// in a letter gets for free, which is worked out from the token itself.
+	CommentIsWord bool `json:"commentisword"`
+}
+
+// LanguageFeature is a struct which represents the conversion from Language into what is used for matching
+type LanguageFeature struct {
+	Complexity         *Trie
+	MultiLineComments  *Trie
+	MultiLine          [][]string // in case someone needs the actual value
+	SingleLineComments *Trie
+	LineComment        []string // in case someone needs the actual value
+	Strings            *Trie
+	Tokens             *Trie
+	Nested             bool
+	LineSplice         bool
+	WordComments       bool
+	// CommentIsWord requires a line comment token to stand alone as a word, for
+	// the languages that spell their comment with something that is not a
+	// letter and so gets no boundary from WordComments. See Language.
+	CommentIsWord         bool
+	Escape                byte
+	PostfixExcludes       [][]byte
+	ComplexityCheckMask   byte
+	SingleLineCommentMask byte
+	MultiLineCommentMask  byte
+	StringCheckMask       byte
+	ProcessMask           byte
+	// TokenFirst answers, for a byte, whether the counting loop has any reason
+	// to stop on it: the byte opens some token in the Tokens trie, or it is a
+	// newline, or it is the nul that marks the file binary. ProcessMask answers
+	// the same question with an OR of the token first bytes, which for most
+	// languages is 0x7f and so lets every ASCII byte through to a trie walk
+	// that then fails at its first step. The table is exact, so the walk only
+	// happens where a token really can start.
+	TokenFirst   *[256]bool
+	Keywords     []string
+	KeywordBytes [][]byte
+	Heuristics   []CompiledHeuristic
+	Quotes       []Quote
+}
+
+// CompiledHeuristic is the runtime form of a Heuristic with its regex compiled
+// and its literals pre-converted to bytes for matching.
+type CompiledHeuristic struct {
+	Re       *regexp.Regexp
+	Literals [][]byte
+	Anchored bool
+}
+
+// FileJobCallback is an interface that FileJobs can implement to get a per line callback with the line type
+type FileJobCallback interface {
+	// ProcessLine should return true to continue processing or false to stop further processing and return
+	ProcessLine(job *FileJob, currentLine int64, lineType LineType) bool
+}
+
+// FileJob is a struct used to hold all of the results of processing internally before sent to the formatter
+type FileJob struct {
+	Language             string
+	PossibleLanguages    []string // Used to hold potentially more than one language which populates language when determined
+	Filename             string
+	Extension            string
+	Location             string
+	Symlocation          string
+	Content              []byte `json:"-"`
+	Bytes                int64
+	Lines                int64
+	Code                 int64
+	Comment              int64
+	Blank                int64
+	Complexity           int64
+	Cognitive            int64   // nesting-weighted complexity; JSON emission is gated on the Cognitive global via MarshalJSON
+	ComplexityLine       []int64 `json:"-"`
+	CognitiveLine        []int64 `json:"-"` // per-line cognitive weight; populated only when TrackComplexityLines and Cognitive are both enabled
+	WeightedComplexity   float64
+	Callback             FileJobCallback `json:"-"`
+	Binary               bool
+	Minified             bool
+	Generated            bool
+	EndPoint             int
+	Uloc                 int
+	LineLength           []int  `json:"-"`
+	ClassifyContent      bool   `json:"-"` // When true, CountStats populates ContentByteType
+	ContentByteType      []byte `json:"-"` // Per-byte classification, allocated by CountStats when ClassifyContent is true
+	TrackComplexityLines bool   `json:"-"` // When true, CountStats populates ComplexityLine
+	cognitiveNesting     int    // transient per-line nesting level used during CountStats when Cognitive is enabled
+}
+
+// MarshalJSON emits FileJob with the Cognitive field present (even when 0) while
+// the Cognitive global is on, and omitted entirely when it is off. A static
+// `omitempty` tag cannot express this because it would also drop a legitimately
+// zero cognitive value on a branch-free file while the metric is active. The
+// unexported alias type carries the same field tags but none of the methods, so
+// marshaling it does not recurse.
+func (fileJob *FileJob) MarshalJSON() ([]byte, error) {
+	type alias FileJob
+	if Cognitive {
+		return cognitiveJSON.Marshal((*alias)(fileJob))
+	}
+	// Shadow the promoted Cognitive with a zero-valued omitempty field of the
+	// same JSON name: the shallower field wins the name, then omitempty drops
+	// it, so the key is absent. (A json:"-" shadow would be removed before
+	// conflict resolution, letting the embedded field resurface.)
+	return cognitiveJSON.Marshal(struct {
+		*alias
+		Cognitive int64 `json:"Cognitive,omitempty"`
+	}{alias: (*alias)(fileJob)})
+}
+
+// FilterContentByType returns a copy of Content with bytes not matching any of
+// the given types replaced by spaces. Newlines are always preserved regardless
+// of type. Returns nil if ContentByteType is nil.
+func (fj *FileJob) FilterContentByType(keepTypes ...byte) []byte {
+	if fj.ContentByteType == nil {
+		return nil
+	}
+
+	keep := make(map[byte]bool, len(keepTypes))
+	for _, t := range keepTypes {
+		keep[t] = true
+	}
+
+	result := make([]byte, len(fj.Content))
+	for i, b := range fj.Content {
+		if b == '\n' || keep[fj.ContentByteType[i]] {
+			result[i] = b
+		} else {
+			result[i] = ' '
+		}
+	}
+	return result
+}
+
+// LanguageSummary is used to hold summarized results for a single language
+type LanguageSummary struct {
+	Name               string
+	Bytes              int64
+	CodeBytes          int64
+	Lines              int64
+	Code               int64
+	Comment            int64
+	Blank              int64
+	Complexity         int64
+	Cognitive          int64 // nesting-weighted complexity; JSON emission is gated on the Cognitive global via MarshalJSON
+	Count              int64
+	WeightedComplexity float64
+	Files              []*FileJob
+	LineLength         []int
+	ULOC               int
+	CodePercent        *float64 `json:",omitempty"`
+	CommentPercent     *float64 `json:",omitempty"`
+	BlankPercent       *float64 `json:",omitempty"`
+	LinePercent        *float64 `json:",omitempty"`
+	ComplexityPercent  *float64 `json:",omitempty"`
+	BytePercent        *float64 `json:",omitempty"`
+	FilePercent        *float64 `json:",omitempty"`
+}
+
+// MarshalJSON gates the language-level Cognitive field on the Cognitive global,
+// mirroring FileJob.MarshalJSON: present (even at 0) when the metric is on,
+// omitted when off. See FileJob.MarshalJSON for the rationale.
+func (l LanguageSummary) MarshalJSON() ([]byte, error) {
+	type alias LanguageSummary
+	if Cognitive {
+		return cognitiveJSON.Marshal(alias(l))
+	}
+	return cognitiveJSON.Marshal(struct {
+		alias
+		Cognitive int64 `json:"Cognitive,omitempty"`
+	}{alias: alias(l)})
+}
+
+// OpenClose is used to hold an open/close pair for matching such as multi line comments
+type OpenClose struct {
+	Open  []byte
+	Close []byte
+}
+
+// CheckDuplicates is used to hold hashes if duplicate detection is enabled it comes with a mutex
+// that should be locked while a check is being performed then added
+type CheckDuplicates struct {
+	hashes map[int64][][]byte
+	mux    sync.Mutex
+}
+
+// Add is a non thread safe add a key into the duplicates check need to use mutex inside struct before calling this
+func (c *CheckDuplicates) Add(key int64, hash []byte) {
+	hashes, ok := c.hashes[key]
+	if ok {
+		c.hashes[key] = append(hashes, hash)
+	} else {
+		c.hashes[key] = [][]byte{hash}
+	}
+}
+
+// Clear drops every recorded hash, taking the mutex itself. Called between runs
+// so a second in-process invocation does not treat the first run's files as
+// duplicates of themselves.
+func (c *CheckDuplicates) Clear() {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	clear(c.hashes)
+}
+
+// Check is a non thread safe check to see if the key exists already need to use mutex inside struct before calling this
+func (c *CheckDuplicates) Check(key int64, hash []byte) bool {
+	hashes, ok := c.hashes[key]
+
+	return ok && slices.ContainsFunc(hashes, func(h []byte) bool {
+		return bytes.Equal(h, hash)
+	})
+}
+
+// Trie is a structure used to store matches efficiently
+type Trie struct {
+	Type  int
+	Close []byte
+	Table [256]*Trie
+}
+
+// Insert inserts a string into the trie for matching
+func (root *Trie) Insert(tokenType int, token []byte) {
+	var node *Trie
+
+	node = root
+	for _, c := range token {
+		if node.Table[c] == nil {
+			node.Table[c] = &Trie{}
+		}
+		node = node.Table[c]
+	}
+	node.Type = tokenType
+}
+
+// InsertClose closes off a string in the trie
+func (root *Trie) InsertClose(tokenType int, openToken, closeToken []byte) {
+	var node *Trie
+
+	node = root
+	for _, c := range openToken {
+		if node.Table[c] == nil {
+			node.Table[c] = &Trie{}
+		}
+		node = node.Table[c]
+	}
+	node.Type = tokenType
+	node.Close = closeToken
+}
+
+// Match checks the created trie structure for a match
+func (root *Trie) Match(token []byte) (int, int, []byte) {
+	var node *Trie
+	var depth int
+	var c byte
+
+	node = root
+	var prevClosedNode *Trie
+	var prevClosedDepth int
+	var lineCommentEnd int
+	for depth, c = range token {
+		if node.Table[c] == nil {
+			break
+		}
+		node = node.Table[c]
+		if len(node.Close) > 0 {
+			prevClosedNode = node
+			prevClosedDepth = depth
+		}
+		if node.Type == TSlcomment {
+			lineCommentEnd = depth + 1
+		}
+	}
+	if len(node.Close) == 0 && prevClosedNode != nil {
+		return prevClosedNode.Type, prevClosedDepth, prevClosedNode.Close
+	}
+	// A line comment that begins a longer token, such as Lua's -- in front of
+	// --[[ or Nim's # in front of ##[, still opens a comment when the rest of
+	// that token does not follow. Its length is reported the way a break just
+	// past it would be.
+	if node.Type == 0 && lineCommentEnd > 0 {
+		return TSlcomment, lineCommentEnd, nil
+	}
+	return node.Type, depth, node.Close
+}

@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (for example v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish the release
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: vendor/scc-source/go.mod
+          cache: false
+
+      - name: Build the bundled engine
+        shell: pwsh
+        run: ./build/build-backend.ps1
+
+      - name: Restore (locked)
+        run: dotnet restore CodeScope.sln --locked-mode
+
+      - name: Build
+        run: dotnet build CodeScope.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet run --project tests/CodeScope.Tests -c Release --no-build
+
+      # The small build: the target machine needs the .NET 8 desktop runtime.
+      - name: Publish
+        shell: pwsh
+        run: ./build/publish.ps1
+
+      - name: Zip the published build
+        shell: pwsh
+        run: Compress-Archive -Path publish/CodeScope/* -DestinationPath CodeScope-windows-x64.zip
+
+      # The large build: it carries the runtime, so it runs on a clean machine.
+      - name: Publish with the runtime included
+        shell: pwsh
+        run: ./build/publish.ps1 -SelfContained
+
+      - name: Zip the self-contained build
+        shell: pwsh
+        run: Compress-Archive -Path publish/CodeScope/* -DestinationPath CodeScope-windows-x64-self-contained.zip
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
+          files: |
+            CodeScope-windows-x64.zip
+            CodeScope-windows-x64-self-contained.zip

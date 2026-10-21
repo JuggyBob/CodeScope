@@ -1,0 +1,35 @@
+# Git
+.git
+.gitattributes
+.gitignore
+.github
+
+# Build output
+bin
+obj
+publish
+artifacts
+TestResults
+*.binlog
+
+# The engine is built inside the image from the vendored snapshot, so the
+# locally built executables are not copied in.
+backend
+!backend/.gitkeep
+
+# Editor and IDE noise
+.vs
+.idea
+.vscode
+*.user
+*.suo
+
+# Documentation that is not needed to build
+docs
+*.md
+!README.md
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,1168 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"slices"
+	"strconv"
+	"strings"
+	"testing"
+)
+
+const sccTestFlag string = "-test.main"
+
+var sccBinPath = os.Args[0]
+
+func TestMain(m *testing.M) {
+	idx := slices.Index(os.Args, sccTestFlag)
+	if idx != -1 {
+		os.Args = slices.Delete(os.Args, idx, idx+1)
+		main()
+		return
+	}
+
+	os.Exit(m.Run())
+}
+
+func runSCC(args ...string) (string, error) {
+	args = slices.Insert(args, 0, sccTestFlag)
+	cmd := exec.Command(sccBinPath, args...)
+	// Force SCC_CONFIG_PATH empty (treated as unset) so a global config in the
+	// developer's environment cannot pollute these runs - an unreadable one would
+	// otherwise make scc exit non-zero and fail every test here.
+	cmd.Env = append(os.Environ(), SccConfigEnv+"=")
+	res, err := cmd.CombinedOutput()
+	return string(res), err
+}
+
+func TestNoGitIgnore(t *testing.T) {
+	tmpDir := t.TempDir()
+	ignoreFileName := filepath.Join(tmpDir, ".gitignore")
+	err := os.WriteFile(ignoreFileName, []byte("ignored.xml\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	xmlFileName := filepath.Join(tmpDir, "ignored.xml")
+	err = os.WriteFile(xmlFileName, []byte(`<?xml version="1.0" encoding="UTF-8"?>`), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := runSCC(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "XML") {
+		t.Fatalf("test --no-gitignore failed, output:\n%s", output)
+	}
+
+	output, err = runSCC("--no-gitignore", tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "XML") {
+		t.Fatalf("test --no-gitignore failed, output:\n%s", output)
+	}
+}
+
+func TestIssue82(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/82
+	output1, err := runSCC(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	output2, err := runSCC(pwd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if output1 != output2 {
+		t.Fatalf("`./scc .` not equal to `./scc ${PWD}`")
+	}
+}
+
+func TestIncludeExt(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/108
+	output, err := runSCC("--include-ext", "go", "examples/language")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "Go") || strings.Contains(output, "Java") {
+		t.Fatalf("include-ext check failed, output:\n%s", output)
+	}
+}
+
+func TestIssue115(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/115
+	output, err := runSCC("examples/issue115/.test/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "Perl") {
+		t.Fatalf("Should not print Perl, output:\n%s", output)
+	}
+}
+
+func TestIssue120(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/120
+	output, err := runSCC("-i", "java", "./examples/issue120")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "Perl") {
+		t.Fatal("extension param should ignore Shebang")
+	}
+}
+
+func TestIssue152(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/152
+	output, err := runSCC("-i", "css", "./examples/issue152/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "CSS") {
+		t.Fatalf("`-i css` extension check failed, output:\n%s", output)
+	}
+}
+
+func TestIssue250(t *testing.T) {
+	// Regression issue https://github.com/boyter/scc/issues/250
+	output1, err := runSCC("--exclude-dir", "examples/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	output2, err := runSCC("--exclude-dir", "examples")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if output1 != output2 {
+		t.Fatalf("examples exclude-dir check failed, output1:\n%s, output2:\n%s", output1, output2)
+	}
+}
+
+func TestIssue259(t *testing.T) {
+	// Regression issue https://github.com/boyter/scc/issues/259
+	output, err := runSCC("-f", "csv", "--exclude-ext", "go")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(output, "Go,") {
+		t.Fatalf("exclude-ext check failed, output:\n%s", output)
+	}
+}
+
+func TestIssue260(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/260
+	_, err := runSCC("-d", "examples/issue260/")
+	if err != nil {
+		t.Fatalf("duplicate empty crash: %v", err)
+	}
+}
+
+func TestIssue345(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/345
+	const expectedOutput = "C++,4,3,1,0,0,76,1,0"
+	output, err := runSCC("-f", "csv", "--no-scc-ignore", "examples/issue345/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("wrong output: %s", output)
+	}
+	if lines[1] != expectedOutput {
+		t.Fatalf("got: %s, want: %s", lines[1], expectedOutput)
+	}
+}
+
+func TestIssue379(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/379
+	const expectedOutput = "Python,7,4,2,1,1,83,1,0"
+	output, err := runSCC("-f", "csv", "--no-scc-ignore", "examples/issue379/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("wrong output: %s", output)
+	}
+	if lines[1] != expectedOutput {
+		t.Fatalf("got: %s, want: %s", lines[1], expectedOutput)
+	}
+}
+
+func TestIssue457(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/457
+	output, err := runSCC("-M", ".*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "0.000 megabytes") {
+		t.Fatalf("Issue 457 test failed, output:\n%s", output)
+	}
+}
+
+func TestIssue564(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/564
+	const expectedPythonOutput = "Python,3,3,0,0,0,84,3,0"
+	const expectedGoOutput = "Go,6,4,0,2,0,58,2,0"
+	output, err := runSCC("-f", "csv", "--no-scc-ignore", "examples/issue564/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(output, "\n")
+	if len(lines) < 3 {
+		t.Fatalf("wrong output: %s", output)
+	}
+	if lines[1] != expectedPythonOutput {
+		t.Fatalf("got: %s, want: %s", lines[1], expectedPythonOutput)
+	}
+	if lines[2] != expectedGoOutput {
+		t.Fatalf("got: %s, want: %s", lines[2], expectedGoOutput)
+	}
+}
+
+func TestIssue610(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/610
+	const expectedOutput = "TypeScript,11,7,2,2,1,214,1,0"
+	output, err := runSCC("-f", "csv", "--no-scc-ignore", "examples/issue610/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(output, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("wrong output: %s", output)
+	}
+	if lines[1] != expectedOutput {
+		t.Fatalf("got: %s, want: %s", lines[1], expectedOutput)
+	}
+}
+
+func TestIssue339(t *testing.T) {
+	t.Parallel()
+	// Regression issue https://github.com/boyter/scc/issues/339
+	output, err := runSCC("-f", "csv", "--no-scc-ignore", "examples/issue339/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "MATLAB") {
+		t.Errorf("can not find MATLAB, output: %s", output)
+	}
+	if !strings.Contains(output, "Objective C") {
+		t.Errorf("can not find Objective C, output:\n%s", output)
+	}
+}
+
+func TestInvalidOption(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("--not-a-real-option")
+	if err == nil {
+		t.Fatal("scc should exit with error code")
+	}
+	if !strings.Contains(output, "Error: unknown flag: --not-a-real-option") {
+		t.Fatalf("scc should report invalid options, output:\n%s", output)
+	}
+}
+
+func TestFileFlagSyntax(t *testing.T) {
+	tmpDir := t.TempDir()
+	flagsFileName := filepath.Join(tmpDir, "flags.txt")
+	// include \n, \r\n and no line terminators
+	testCases := []string{
+		"go.mod\ngo.sum\nLICENSE\n",
+		"go.mod\r\ngo.sum\r\nLICENSE\r\n",
+		"go.mod\ngo.sum\nLICENSE",
+		"go.mod\r\ngo.sum\r\nLICENSE",
+		"go.mod\ngo.sum\r\nLICENSE",
+	}
+
+	for _, tc := range testCases {
+		err := os.WriteFile(flagsFileName, []byte(tc), 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = runSCC("@" + flagsFileName)
+		if err != nil {
+			t.Errorf("flag syntax faild: %q, %v", tc, err)
+		}
+	}
+}
+
+func TestLineLength(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("-m")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(output, "MaxLine / MeanLine") < 2 {
+		t.Fatalf("line length test failed, output:\n%s", output)
+	}
+}
+
+func TestFormatHTML(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("--format", "html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "<title>scc html output</title>") {
+		t.Fatalf("html format test failed, output:\n%s", output)
+	}
+}
+
+func TestFormatHTMLTable(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("--format", "html-table")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, `<table id="scc-table">`) {
+		t.Fatalf("html-table format test failed, output:\n%s", output)
+	}
+}
+
+func TestFormatSQL(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("--format", "sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "create table metadata (   -- github.com/boyter/scc") {
+		t.Fatalf("sql format test failed, output:\n%s", output)
+	}
+}
+
+func TestFormatSQLInsert(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("--format", "sql-insert")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "begin transaction;\ninsert into t values(") {
+		t.Fatalf("sql-insert format test failed, output:\n%s", output)
+	}
+}
+
+func TestMultipleFormatStdout(t *testing.T) {
+	output, err := runSCC("--format-multi", "tabular:stdout,html:stdout,csv:stdout,sql:stdout")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tabularPattern := regexp.MustCompile(`Processed .+? bytes, .+? megabytes \(SI\)`)
+	if !tabularPattern.MatchString(output) {
+		t.Errorf("multi-format tabular failed, output:\n%s", output)
+	}
+
+	if !strings.Contains(output, `<html lang="en"><head><meta charset="utf-8" /><title>scc html output</title>`) {
+		t.Errorf("multi-format html failed, output:\n%s", output)
+	}
+
+	if !strings.Contains(output, "Language,Lines,Code,Comments,Blanks,Complexity,Bytes,Files,ULOC") {
+		t.Errorf("multi-format csv failed, output:\n%s", output)
+	}
+
+	sqlPattern := regexp.MustCompile(`insert into t values\(.+?\);`)
+	if !sqlPattern.MatchString(output) {
+		t.Errorf("multi-format sql failed, output:\n%s", output)
+	}
+}
+
+func TestMultipleFormatWriteFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	outputTabular := filepath.Join(tmpDir, "output.tab")
+	outputWide := filepath.Join(tmpDir, "output.wide")
+	outputJSON1 := filepath.Join(tmpDir, "output.json")
+	outputJSON2 := filepath.Join(tmpDir, "output2.json")
+	outputCSV := filepath.Join(tmpDir, "output.csv")
+	outputYAML := filepath.Join(tmpDir, "output.yaml")
+	outputHTML := filepath.Join(tmpDir, "output.html")
+	outputHTMLTable := filepath.Join(tmpDir, "output_table.html")
+	outputSQL := filepath.Join(tmpDir, "output.sql")
+
+	multiFormatArgs := fmt.Sprintf(
+		"tabular:%s,wide:%s,json:%s,json2:%s,csv:%s,cloc-yaml:%s,html:%s,html-table:%s,sql:%s",
+		outputTabular,
+		outputWide,
+		outputJSON1,
+		outputJSON2,
+		outputCSV,
+		outputYAML,
+		outputHTML,
+		outputHTMLTable,
+		outputSQL,
+	)
+
+	_, err := runSCC("--format-multi", multiFormatArgs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info, err := os.Stat(outputTabular); err != nil || info.Size() <= 0 {
+		t.Fatal("tabular write file test failed")
+	}
+	if info, err := os.Stat(outputWide); err != nil || info.Size() <= 0 {
+		t.Fatal("wide write file test failed")
+	}
+	if info, err := os.Stat(outputJSON1); err != nil || info.Size() <= 0 {
+		t.Fatal("json write file test failed")
+	}
+	if info, err := os.Stat(outputJSON2); err != nil || info.Size() <= 0 {
+		t.Fatal("json2 write file test failed")
+	}
+	if info, err := os.Stat(outputCSV); err != nil || info.Size() <= 0 {
+		t.Fatal("csv write file test failed")
+	}
+	if info, err := os.Stat(outputYAML); err != nil || info.Size() <= 0 {
+		t.Fatal("cloc-yaml write file test failed")
+	}
+	if info, err := os.Stat(outputHTML); err != nil || info.Size() <= 0 {
+		t.Fatal("html write file test failed")
+	}
+	if info, err := os.Stat(outputHTMLTable); err != nil || info.Size() <= 0 {
+		t.Fatal("html-table write file test failed")
+	}
+	if info, err := os.Stat(outputSQL); err != nil || info.Size() <= 0 {
+		t.Fatal("sql write file test failed")
+	}
+}
+
+// TestMultipleFormatWriteFileColonPath is a regression test for
+// https://github.com/boyter/scc/issues/290 where --format-multi silently
+// discarded any target containing a colon, such as a Windows absolute path
+// like csv:C:\folder\out.csv, because the format:target pair was split on
+// every colon rather than only the first one.
+func TestMultipleFormatWriteFileColonPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	outputCSV := filepath.Join(tmpDir, "C:output.csv")
+
+	_, err := runSCC("--format-multi", "csv:"+outputCSV)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info, err := os.Stat(outputCSV); err != nil || info.Size() <= 0 {
+		t.Fatalf("csv write to colon containing path failed for %s", outputCSV)
+	}
+}
+
+func TestRecursivelyIgnore(t *testing.T) {
+	tmpDir := t.TempDir()
+	err := os.WriteFile(filepath.Join(tmpDir, ".gitignore"), []byte("ignore-git.txt\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, ".ignore"), []byte("vendor/\nignore.txt\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Mkdir(filepath.Join(tmpDir, "ignore"), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "ignore", "README.md"), []byte("Files in here are to ensure that .ignore and .gitignore work recursively\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "ignore", "ignore.txt"), []byte("testing\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "ignore", "ignore-git.txt"), []byte("git\ntesting\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := runSCC("--by-file", "--no-scc-ignore", tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "ignore.txt") || strings.Contains(output, "ignore-git.txt") {
+		t.Errorf("ignore recursive filter failed, output:\n%s", output)
+	}
+
+	output, err = runSCC("--by-file", "--no-scc-ignore", "--no-ignore", tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "ignore.txt") || strings.Contains(output, "ignore-git.txt") {
+		t.Errorf("ignore recursive filter failed, output:\n%s", output)
+	}
+
+	output, err = runSCC("--by-file", "--no-scc-ignore", "--no-gitignore", tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "ignore.txt") || !strings.Contains(output, "ignore-git.txt") {
+		t.Errorf("ignore recursive filter failed, output:\n%s", output)
+	}
+
+	output, err = runSCC("--by-file", "--no-scc-ignore", "--no-ignore", "--no-gitignore", tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "ignore.txt") || !strings.Contains(output, "ignore-git.txt") {
+		t.Errorf("ignore recursive filter failed, output:\n%s", output)
+	}
+}
+
+func TestMultipleGitIgnore(t *testing.T) {
+	tmpDir := t.TempDir()
+	err := os.WriteFile(filepath.Join(tmpDir, ".gitignore"), []byte("ignore.txt\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Mkdir(filepath.Join(tmpDir, "ignore"), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "ignore", ".gitignore"), []byte("ignore.java\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "ignore", "ignore.java"), []byte("//test\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := runSCC(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "Java") {
+		t.Fatalf("multiple gitignore failed, output:\n%s", output)
+	}
+}
+
+func TestFlagSuggestion(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		args           []string
+		expectedOutput string
+	}{
+		{
+			args:           []string{"--farmat"},
+			expectedOutput: "The most similar flag of --farmat is:\n\t--format\n",
+		},
+		{
+			args:           []string{"--no-gignore"},
+			expectedOutput: "The most similar flags of --no-gignore are:\n\t--no-ignore\n\t--no-gitignore\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		output, err := runSCC(tc.args...)
+		if err == nil {
+			t.Fatal("scc should exit with error code")
+		}
+		if !strings.Contains(output, tc.expectedOutput) {
+			t.Errorf("wrong suggestion for %v, want: %s, got: %s", tc.args, tc.expectedOutput, output)
+		}
+	}
+}
+
+func TestDeterministicOutput(t *testing.T) {
+	output, err := runSCC(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 10 {
+		output2, err := runSCC(".")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if output != output2 {
+			t.Fatalf("want:\n%s, got:\n%s", output, output2)
+		}
+	}
+}
+
+func TestDuplicates(t *testing.T) {
+	for range 10 {
+		output, err := runSCC("-f", "json", "-d", "./examples/duplicates/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output, `"Count":1`) {
+			t.Fatalf("duplicates check failed, output:\n%s", output)
+		}
+	}
+}
+
+func TestCountAs(t *testing.T) {
+	testCases := []struct {
+		countAs  string
+		expected []string
+	}{
+		{
+			countAs:  "jsp:html",
+			expected: []string{"HTML"},
+		},
+		{
+			countAs:  "JsP:html",
+			expected: []string{"HTML"},
+		},
+		{
+			countAs:  "jsp:j2",
+			expected: []string{"Jinja"},
+		},
+		{
+			countAs:  "jsp:html,new:java",
+			expected: []string{"HTML", "Java"},
+		},
+		{
+			countAs:  "jsp:html,new:C Header",
+			expected: []string{"HTML", "C Header"},
+		},
+	}
+
+	for _, tc := range testCases {
+		output, err := runSCC("-f", "csv", "--count-as", tc.countAs, "./examples/countas/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, expectedLang := range tc.expected {
+			if !strings.Contains(output, expectedLang+",") {
+				t.Errorf("count as failed, count as: %s, output:\n%s", tc.countAs, output)
+			}
+		}
+	}
+}
+
+func TestCountAsPattern(t *testing.T) {
+	// foo_spec.rb is relabelled to the new Ruby Spec category, app.rb stays Ruby
+	output, err := runSCC("-f", "csv", "--count-as-pattern", "glob:*_spec.rb:Ruby Spec:Ruby", "./examples/countaspattern/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The minted category row, with non-zero comment and complexity counts which
+	// proves the counting rules were cloned from the Ruby base language
+	if !strings.Contains(output, "Ruby Spec,9,7,1,1,1,") {
+		t.Errorf("count-as-pattern failed to produce Ruby Spec row, output:\n%s", output)
+	}
+	// The non matching file is still counted as plain Ruby
+	if !strings.Contains(output, "Ruby,7,5,1,1,1,") {
+		t.Errorf("count-as-pattern should leave app.rb as Ruby, output:\n%s", output)
+	}
+
+	// The regex engine should produce the same relabelling
+	output, err = runSCC("-f", "csv", "--count-as-pattern", `re:_spec\.rb$:Ruby Spec:Ruby`, "./examples/countaspattern/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "Ruby Spec,") {
+		t.Errorf("regex count-as-pattern failed, output:\n%s", output)
+	}
+}
+
+func TestCountAsPatternInvalidSkipped(t *testing.T) {
+	// An unresolvable base language is reported and skipped, the run still works
+	output, err := runSCC("-f", "csv", "--count-as-pattern", "glob:*_spec.rb:Ruby Spec:Nonexistent", "./examples/countaspattern/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "is not a known language or extension") {
+		t.Errorf("expected error message for unknown base language, output:\n%s", output)
+	}
+	if strings.Contains(output, "Ruby Spec,") {
+		t.Errorf("Ruby Spec should not appear when the rule was skipped, output:\n%s", output)
+	}
+}
+
+func TestRemapUnknown(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("-f", "csv", "--remap-unknown", "-*- C++ -*-:C Header", "./examples/remap/unknown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "C Header,") {
+		t.Fatalf("remap unknown failed, output:\n%s", output)
+	}
+}
+
+func TestRemapAll(t *testing.T) {
+	t.Parallel()
+	output, err := runSCC("-f", "csv", "--remap-all", "-*- C++ -*-:C Header", "./examples/remap/java.java")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "C Header,") {
+		t.Fatalf("remap all failed, output:\n%s", output)
+	}
+}
+
+func TestCocomoProjectType(t *testing.T) {
+	projectTypes := []string{"organic", "semi-detached", "embedded", "custom,1,1,1,1"}
+	for _, typ := range projectTypes {
+		output, err := runSCC("--cocomo-project-type", typ)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output, fmt.Sprintf("Estimated Cost to Develop (%s)", typ)) ||
+			!strings.Contains(output, fmt.Sprintf("Estimated Schedule Effort (%s)", typ)) ||
+			!strings.Contains(output, fmt.Sprintf("Estimated People Required (%s)", typ)) {
+			t.Errorf("check cocomo project type failed: %s", typ)
+		}
+	}
+}
+
+func TestCocomoProjectTypeFallback(t *testing.T) {
+	unknownTypes := []string{"doesnotexist", "custom,1,1,1"}
+	for _, typ := range unknownTypes {
+		output, err := runSCC("--cocomo-project-type", typ)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output, "Estimated Cost to Develop (organic)") ||
+			!strings.Contains(output, "Estimated Schedule Effort (organic)") ||
+			!strings.Contains(output, "Estimated People Required (organic)") {
+			t.Errorf("check cocomo project type fallback failed: %s", typ)
+		}
+	}
+}
+
+func TestOutputBytes(t *testing.T) {
+	jsonOutput, err := runSCC("-f", "json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(jsonOutput, `"Bytes":`) {
+		t.Errorf("json output does not contain `Bytes` field, output:\n%s", jsonOutput)
+	}
+
+	output, err := runSCC()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "megabytes") {
+		t.Errorf("output does not contain `megabytes`, output:\n%s", output)
+	}
+}
+
+func TestFileGCCount(t *testing.T) {
+	const target = "./examples/duplicates"
+	files, err := os.ReadDir(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := runSCC("--file-gc-count", strconv.Itoa(len(files)-1), "-v", target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, "read file limit exceeded GC re-enabled") {
+		t.Errorf("test file GC count failed, file count: %d, limit: %d", len(files), len(files)-1)
+	}
+
+	output, err = runSCC("--file-gc-count", strconv.Itoa(len(files)+1), "-v", target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output, "read file limit exceeded GC re-enabled") {
+		t.Errorf("test file GC count failed, file count: %d, limit: %d", len(files), len(files)+1)
+	}
+}
+
+func TestIncludeSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping symlink test on Windows due to privilege requirements")
+	}
+
+	tmpDir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dirA := filepath.Join(tmpDir, "a")
+	dirB := filepath.Join(tmpDir, "b")
+	if err := os.Mkdir(dirA, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(dirB, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	const fileName = "source.go"
+	if err := os.WriteFile(filepath.Join(dirA, fileName), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dirB, fileName), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// link to another dir, should be counted under --include-symlinks
+	if err := os.Symlink(filepath.Join(dirB, fileName), filepath.Join(dirA, "link1.go")); err != nil {
+		t.Fatal(err)
+	}
+	// link to the same dir, this should be ignored in all times
+	if err := os.Symlink(filepath.Join(dirA, fileName), filepath.Join(dirA, "link2.go")); err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := runSCC("-f", "json", "--no-scc-ignore", dirA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, `"Count":1`) {
+		t.Errorf("count without symlink failed, output:\n%s", output)
+	}
+
+	output, err = runSCC("-f", "json", "--no-scc-ignore", "--include-symlinks", dirA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output, `"Count":2`) {
+		t.Errorf("count includes symlink failed, output:\n%s", output)
+	}
+}
+
+func TestLanguageNameTruncate(t *testing.T) {
+	output, err := runSCC("examples/language")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(output, "Bitbucket Pipe…") != 1 {
+		t.Errorf("`Bitbucket Pipeline` truncate test failed")
+	}
+	if strings.Count(output, "CloudFormation…") != 2 {
+		t.Errorf("`CloudFormation (JSON)` and `CloudFormation (YAML)` truncate test failed")
+	}
+}
+
+func TestSpecificLanguages(t *testing.T) {
+	languages := [...]string{
+		"ABNF",
+		"AL",
+		"Alchemist",
+		"Algol 68",
+		"Alloy",
+		"Amber",
+		"Apex",
+		"ArkTs",
+		"Arturo",
+		"Astro",
+		"AWK",
+		"BASH",
+		"Bean",
+		"Bicep",
+		"Bitbucket Pipeline",
+		"Blueprint",
+		"Boo",
+		"Bosque",
+		"Bru",
+		"C",
+		"C3",
+		"C Header",
+		"C Shell",
+		"C#",
+		"C++",
+		"C++ Header",
+		"Cairo",
+		"Cangjie",
+		"Chapel",
+		"Circom",
+		"Clipper",
+		"Clojure",
+		"CMake",
+		"Cuda",
+		"Cypher",
+		"D2",
+		"DAML",
+		"DM",
+		"Docker ignore",
+		"Dockerfile",
+		"DOT",
+		"Elixir Template",
+		"Elm",
+		"EmiT",
+		"F#",
+		"Factor",
+		"Flow9",
+		"FSL",
+		"Futhark",
+		"FXML",
+		"Gemfile",
+		"Gleam",
+		"Go",
+		"Go+",
+		"Godot Scene",
+		"GraphQL",
+		"Gremlin",
+		"Gwion",
+		"HAML",
+		"Hare",
+		"Haskell",
+		"HCL",
+		"IEC61131-3",
+		"ignore",
+		"INI",
+		"Java",
+		"JavaScript",
+		"JCL",
+		"JSON5",
+		"JSONC",
+		"jq",
+		"Korn Shell",
+		"Kotlin",
+		"Koto",
+		"LALRPOP",
+		"License",
+		"Liquid",
+		"LiveScript",
+		"LLVM IR",
+		"Lua",
+		"Luau",
+		"Luna",
+		"MLIR",
+		"Makefile",
+		"Metal",
+		"Mojo",
+		"Monkey C",
+		"Moonbit",
+		"Move",
+		"Nature",
+		"Nushell",
+		"OpenQASM",
+		"OpenTofu",
+		"Patch",
+		"Perl",
+		"PHP",
+		"Pkl",
+		"Plain Text",
+		"POML",
+		"PostScript",
+		"ProGuard",
+		"Proto",
+		"Python",
+		"Q#",
+		"Qt Translation Source",
+		"R",
+		"Racket",
+		"Rakefile",
+		"RAML",
+		"Rebol",
+		"Redscript",
+		"Rich Text Format",
+		"Ruby",
+		"Rust",
+		"Scala",
+		"Scallop",
+		"Seed7",
+		"Shell",
+		"Sieve",
+		"Slang",
+		"Slint",
+		"Smalltalk",
+		"Snakemake",
+		"Stan",
+		"Swift",
+		"Systemd",
+		"Tact",
+		"Teal",
+		"Tera",
+		"Templ",
+		"Terraform",
+		"TOML",
+		"TOON",
+		"TTCN-3",
+		"Txtar",
+		"TypeScript",
+		"TypeSpec",
+		"Typst",
+		"Up",
+		"Vala",
+		"Vim Script",
+		"Web Services Description Language",
+		"WebGPU Enhanced Shading Language",
+		"WebGPU Shading Language",
+		"wenyan",
+		"Wren",
+		"XHTML",
+		"XMake",
+		"XML Schema",
+		"YAML",
+		"Yarn",
+		"Zen C",
+		"Zig",
+		"ZoKrates",
+		"Zsh",
+	}
+
+	output, err := runSCC("-f", "csv", "examples/language")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, language := range languages {
+		if !strings.Contains(output, language+",") {
+			t.Errorf("language not found in output: %v", language)
+		}
+	}
+}
+
+// runHelp returns the `scc --help` text. --no-config keeps a developer's
+// ./.sccconfig out of it: runSCC reports combined output, so a warning from a
+// malformed one would be compared against the README as if it were help.
+func runHelp() (string, error) {
+	return runSCC("--help", "--no-config")
+}
+
+var (
+	// cpuDefaultFlag matches the four flags defaulting to runtime.NumCPU(),
+	// the only ones whose default depends on the machine the paste was taken
+	// on. Every other default is a literal and stays under comparison.
+	cpuDefaultFlag = regexp.MustCompile(`^\s+--(file-list-job-workers|file-list-queue-size|file-process-job-workers|file-summary-job-queue-size) `)
+	helpDefault    = regexp.MustCompile(`\(default \d+\)`)
+)
+
+// normaliseHelp drops the parts of the help output that differ legitimately
+// between machines and releases: the version line and the CPU-count defaults.
+func normaliseHelp(s string) string {
+	var kept []string
+	for _, line := range strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n") {
+		if strings.HasPrefix(line, "Version ") {
+			continue
+		}
+		if cpuDefaultFlag.MatchString(line) {
+			line = helpDefault.ReplaceAllString(line, "(default N)")
+		}
+		kept = append(kept, line)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
+}
+
+// readmeHelpBlock returns the `scc -h` paste, which runs from the line after
+// the prompt down to the fence that closes the block.
+func readmeHelpBlock(t *testing.T, readme string) string {
+	t.Helper()
+	const anchor = "$ scc -h\n"
+	readme = strings.ReplaceAll(readme, "\r\n", "\n")
+	start := strings.Index(readme, anchor)
+	if start == -1 {
+		t.Fatal("README.md has no `$ scc -h` line to anchor the help paste to")
+	}
+	block := readme[start+len(anchor):]
+	end := strings.Index(block, "\n```")
+	if end == -1 {
+		t.Fatal("the `$ scc -h` block in README.md is never closed by a fence")
+	}
+	return block[:end]
+}
+
+// TestReadmeHelpMatchesBinary holds the `scc -h` paste against the flags
+// cobra actually registers, so a new or reworded option cannot land with the
+// documented set left behind.
+func TestReadmeHelpMatchesBinary(t *testing.T) {
+	output, err := runHelp()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	readme, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Skipf("README.md is not readable, nothing to compare against: %v", err)
+	}
+
+	want := normaliseHelp(output)
+	got := normaliseHelp(readmeHelpBlock(t, string(readme)))
+	if got == want {
+		return
+	}
+
+	wantLines := strings.Split(want, "\n")
+	gotLines := strings.Split(got, "\n")
+	for i := 0; i < max(len(wantLines), len(gotLines)); i++ {
+		var w, g string
+		if i < len(wantLines) {
+			w = wantLines[i]
+		}
+		if i < len(gotLines) {
+			g = gotLines[i]
+		}
+		if w == g {
+			continue
+		}
+		t.Errorf("the `scc -h` block in README.md is out of date - paste the current `scc --help` output in under `$ scc -h`\nfirst difference at line %d:\n  README: %s\n  binary: %s", i+1, g, w)
+		return
+	}
+}
+
+// reportSkipHelpRe pulls the recognised section names out of the
+// --report-skip line of `scc --help`, and backtickedRe the ones the README
+// table claims.
+var (
+	reportSkipHelpRe = regexp.MustCompile(`--report-skip string\s+[^(\n]+\(([a-z,]+)\)`)
+	backtickedRe     = regexp.MustCompile("`([a-z]+)`")
+)
+
+// TestReadmeReportSkipSections holds the --report-skip row of the report
+// options table against the names the flag itself lists, the two having
+// drifted apart once already.
+func TestReadmeReportSkipSections(t *testing.T) {
+	output, err := runHelp()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	readme, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Skipf("README.md is not readable, nothing to compare against: %v", err)
+	}
+
+	sections := reportSkipHelpRe.FindStringSubmatch(output)
+	if sections == nil {
+		t.Fatal("no --report-skip section list found in `scc --help`")
+	}
+
+	const prefix = "| `--report-skip LIST` |"
+	row := ""
+	for _, line := range strings.Split(string(readme), "\n") {
+		if strings.HasPrefix(line, prefix) {
+			row = line
+			break
+		}
+	}
+	if row == "" {
+		t.Fatalf("README.md has no %q row to check", prefix)
+	}
+
+	recognised := map[string]bool{}
+	for _, name := range strings.Split(sections[1], ",") {
+		recognised[name] = true
+		if !strings.Contains(row, "`"+name+"`") {
+			t.Errorf("the --report-skip row in README.md does not list %q", name)
+		}
+	}
+
+	cells := strings.Split(row, "|")
+	if len(cells) < 4 {
+		t.Fatalf("could not read a description cell out of %q", row)
+	}
+	for _, listed := range backtickedRe.FindAllStringSubmatch(cells[2], -1) {
+		if !recognised[listed[1]] {
+			t.Errorf("the --report-skip row in README.md lists %q, which the flag does not accept", listed[1])
+		}
+	}
+}

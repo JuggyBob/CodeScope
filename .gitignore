@@ -1,0 +1,50 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+/publish/
+/artifacts/
+/TestResults/
+*.binlog
+
+# The frozen backend is compiled from vendor/scc-source by
+# build/build-backend.ps1. The executables are build artefacts and are
+# reproducible from the snapshot, so they do not belong in the repository.
+/backend/*
+!/backend/.gitkeep
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# Local settings, secrets and scratch files
+*.env
+.env
+*.local
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.p12
+*.key
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej

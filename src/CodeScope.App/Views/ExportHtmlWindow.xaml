@@ -1,0 +1,48 @@
+<Window x:Class="CodeScope.Views.ExportHtmlWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Export HTML report"
+        Icon="/Assets/CodeScope.ico"
+        Width="560"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="Segoe UI">
+
+  <StackPanel Margin="20">
+    <TextBlock Text="Export HTML report" FontSize="16" FontWeight="SemiBold"
+               Foreground="{DynamicResource TextPrimaryBrush}" />
+    <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"
+               Text="The engine writes a self-contained HTML infographic of the same report. Choose where it should go; the analysed folder is used when you leave the folder empty." />
+
+    <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0" Padding="16">
+      <StackPanel>
+        <TextBlock Text="File name" Style="{StaticResource LabelStyle}" Margin="0,0,0,5" />
+        <TextBox x:Name="NameBox" Style="{StaticResource InputStyle}" MinHeight="38" />
+
+        <TextBlock Text="Folder" Style="{StaticResource LabelStyle}" Margin="0,14,0,5" />
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBox x:Name="FolderBox" Grid.Column="0" Style="{StaticResource InputStyle}" MinHeight="38" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowse" Margin="8,0,0,0"
+                  Style="{StaticResource SecondaryButtonStyle}" MinHeight="38" Padding="14,0" />
+        </Grid>
+
+        <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextTertiaryBrush}"
+                   Text="Leave the folder empty to write the report beside the analysed code." />
+      </StackPanel>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="Cancel" IsCancel="True" Style="{StaticResource SecondaryButtonStyle}" MinWidth="96" />
+      <Button Content="Export" IsDefault="True" Click="OnExport" MinWidth="120" Margin="8,0,0,0"
+              Style="{StaticResource PrimaryButtonStyle}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

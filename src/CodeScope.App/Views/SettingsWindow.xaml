@@ -1,0 +1,125 @@
+<Window x:Class="CodeScope.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:CodeScope.Models"
+        Title="Settings"
+        Icon="/Assets/CodeScope.ico"
+        Width="640" Height="640"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="Segoe UI">
+
+  <DockPanel Margin="18">
+    <!-- buttons -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                Margin="0,14,0,0">
+      <Button Content="Close" Click="OnClose" Style="{StaticResource PrimaryButtonStyle}"
+              MinWidth="110" />
+    </StackPanel>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+
+        <!-- ===== theme ===== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+          <StackPanel>
+            <TextBlock Text="Theme" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,2,0,10" TextWrapping="Wrap"
+                       Text="Applies immediately to the whole application and is remembered between launches." />
+
+            <RadioButton GroupName="theme" Content="Dark" Margin="0,0,0,6" Cursor="Hand"
+                         Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13"
+                         IsChecked="{Binding IsDarkSelected, Mode=OneWay}"
+                         Command="{Binding ApplyThemeCommand}" CommandParameter="{x:Static models:AppTheme.Dark}" />
+            <RadioButton GroupName="theme" Content="Light" Margin="0,0,0,6" Cursor="Hand"
+                         Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13"
+                         IsChecked="{Binding IsLightSelected, Mode=OneWay}"
+                         Command="{Binding ApplyThemeCommand}" CommandParameter="{x:Static models:AppTheme.Light}" />
+            <RadioButton GroupName="theme" Content="Follow system" Margin="0,0,0,6" Cursor="Hand"
+                         Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13"
+                         IsChecked="{Binding IsSystemSelected, Mode=OneWay}"
+                         Command="{Binding ApplyThemeCommand}" CommandParameter="{x:Static models:AppTheme.System}" />
+
+            <TextBlock Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,6,0,0"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       Text="{Binding CurrentThemeDescription, Mode=OneWay}" />
+          </StackPanel>
+        </Border>
+
+        <!-- ===== preferences ===== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+          <StackPanel>
+            <TextBlock Text="Preferences" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,2,0,10" TextWrapping="Wrap"
+                       Text="Settings are stored per Windows user, never inside an analysed project." />
+
+            <CheckBox Content="Remember the last folder, title and configuration"
+                      IsChecked="{Binding RememberLastConfiguration, Mode=TwoWay}"
+                      Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13"
+                      Margin="0,0,0,10" />
+
+            <TextBlock Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,0,0,8"
+                       Text="Settings folder" />
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBox Grid.Column="0" Style="{StaticResource InputStyle}"
+                       Text="{Binding DataFolderPath, Mode=OneWay}"
+                       IsReadOnly="True" />
+              <Button Grid.Column="1" Content="Open" Margin="8,0,0,0" Padding="12,7"
+                      Style="{StaticResource SecondaryButtonStyle}"
+                      Command="{Binding OpenDataFolderCommand}" />
+            </Grid>
+            <TextBlock Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Margin="0,8,0,0"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       Text="The same folder holds the analysis history — the last thirty runs, each with the report data needed to reopen it." />
+          </StackPanel>
+        </Border>
+
+        <!-- ===== backend ===== -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+          <StackPanel>
+            <TextBlock Text="Analysis Backend" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,2,0,10" TextWrapping="Wrap"
+                       Text="CodeScope bundles the frozen scc engine, so it works offline on a clean Windows machine with no Go toolchain and no network." />
+
+            <TextBlock Style="{StaticResource CaptionStyle}" Text="Engine version" Margin="0,0,0,3" />
+            <TextBlock Text="{Binding BackendVersionText}" FontSize="13"
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,10" />
+
+            <TextBlock Style="{StaticResource CaptionStyle}" Text="Snapshot folder" Margin="0,0,0,3" />
+            <TextBlock Text="{Binding SnapshotPath}" FontSize="11.5" TextWrapping="Wrap"
+                       FontFamily="Cascadia Mono, Consolas, monospace"
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,10" />
+
+            <TextBlock Style="{StaticResource CaptionStyle}" Text="Report sections available" Margin="0,0,0,3" />
+            <TextBlock Text="{Binding ReportSectionsText}" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12" />
+
+            <Button Content="Open snapshot documentation" HorizontalAlignment="Left"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Command="{Binding OpenSnapshotDocsCommand}" />
+          </StackPanel>
+        </Border>
+
+        <!-- ===== shortcuts ===== -->
+        <Border Style="{StaticResource CardStyle}">
+          <StackPanel>
+            <TextBlock Text="Keyboard" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,2,0,8" TextWrapping="Wrap"
+                       Text="Alt+G runs the analysis · Esc cancels a running analysis · Ctrl+B shows or hides the history sidebar." />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

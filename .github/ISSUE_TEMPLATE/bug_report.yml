@@ -1,0 +1,86 @@
+name: Bug report
+description: Something does not work as it should
+title: "[bug] "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. The more precise the
+        information, the faster it can be reproduced and fixed.
+
+        If this is a security problem, please do not report it here — follow
+        SECURITY.md instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: CodeScope version
+      description: The version from the application, or the commit you built from.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Windows version
+      options:
+        - Windows 11
+        - Windows 10 (1809 or later)
+        - Windows 10 (earlier)
+        - Windows Server
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: .NET runtime
+      description: The output of `dotnet --list-runtimes` on the machine.
+      options:
+        - "Microsoft.WindowsDesktop.App 8.x is installed"
+        - No .NET 8 runtime is installed
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce it
+      description: The steps that lead to the problem.
+      placeholder: |
+        1. Open the app and choose a folder
+        2. Press "Analyze Codebase"
+        3. Open the Language Breakdown table
+        4. Click the "Lines" heading
+    validations:
+      required: true
+
+  - type: input
+    id: folder
+    attributes:
+      label: Kind of folder analysed
+      description: >
+        Was the analysed folder inside a Git repository? This decides which
+        report sections the engine can produce.
+      placeholder: "inside a Git repository"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Anything else
+      description: >
+        The crash log, if there is one, is at
+        `%LOCALAPPDATA%\CodeScope\crash.log`.
+    render: text

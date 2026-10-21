@@ -1,0 +1,46 @@
+<Window x:Class="CodeScope.Views.PresetNameWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Save preset"
+        Icon="/Assets/CodeScope.ico"
+        Width="480"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="Segoe UI">
+
+  <StackPanel Margin="20">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <TextBlock Text="Save preset" FontSize="16" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,3,0,0" TextWrapping="Wrap"
+                   Text="Restores the report contents, analysis options and output mode in one click." />
+      </StackPanel>
+    </Grid>
+
+    <Border Style="{StaticResource CardStyle}" Margin="0,16,0,0">
+      <StackPanel>
+        <TextBlock Text="Preset name" FontSize="12.5" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+        <TextBox x:Name="NameBox" Style="{StaticResource InputStyle}" FontSize="13"
+                 Margin="0,8,0,0" Height="36" />
+        <TextBlock Style="{StaticResource CaptionStyle}" Margin="0,8,0,0" TextWrapping="Wrap"
+                   Text="Existing presets with the same name are replaced." />
+      </StackPanel>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="Cancel" IsCancel="True" Style="{StaticResource SecondaryButtonStyle}" MinWidth="96" />
+      <Button Content="Save" IsDefault="True" Click="OnSave" Margin="8,0,0,0"
+              Style="{StaticResource PrimaryButtonStyle}" MinWidth="96" MinHeight="34" />
+    </StackPanel>
+  </StackPanel>
+</Window>

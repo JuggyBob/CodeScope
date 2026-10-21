@@ -1,0 +1,60 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ===================================================================
+       Icon geometry. Vector paths only — no glyph fonts, no bitmaps — so the
+       icons stay crisp at every scale and follow the theme colour.
+
+       Every glyph is drawn on the same 24x24 grid, centred, and roughly the
+       same optical size, so a whole set can be mixed on one surface without
+       one looking heavier or heavier-hung than the next.
+
+       Render them with Stretch="Uniform" and Viewbox="0,0,24,24" inside a
+       square box: the viewbox makes every glyph shrink by the same factor
+       (box / 24) instead of by its own bounds, and the stroke thins with it.
+       =================================================================== -->
+
+  <!-- sidebar: a panel with a highlighted left column -->
+  <Geometry x:Key="IconPanel">M 3 3 H 21 V 21 H 3 Z M 9.5 3 V 21</Geometry>
+
+  <!-- chevrons -->
+  <Geometry x:Key="IconChevronDown">M 4 8 L 12 16 L 20 8</Geometry>
+  <Geometry x:Key="IconChevronLeft">M 16 4 L 8 12 L 16 20</Geometry>
+  <Geometry x:Key="IconChevronRight">M 8 4 L 16 12 L 8 20</Geometry>
+
+  <!-- sort direction: a chevron, to sit beside a heading -->
+  <Geometry x:Key="IconSortDown">M 4 8 L 12 16 L 20 8</Geometry>
+
+  <!-- history: a clock with a rewind hand -->
+  <Geometry x:Key="IconClock">M 12 2.5 A 9.5 9.5 0 1 1 11.99 2.5 Z M 12 6.5 V 12 L 15.5 14.5</Geometry>
+
+  <!-- folder -->
+  <Geometry x:Key="IconFolder">M 2.5 19 V 5.5 H 9.5 L 12 8 H 21.5 V 19 Z</Geometry>
+
+  <!-- bin: a lid, a handle and a tapered body — it still reads at fifteen
+       pixels across, which the previous version did not -->
+  <Geometry x:Key="IconTrash">M 3 6.5 H 21 M 9 6.5 V 4 H 15 V 6.5 M 5.5 6.5 L 6.5 20 H 17.5 L 18.5 6.5</Geometry>
+
+  <!-- settings: two rails. The knobs that ride on them are drawn beside it
+       on the same grid, so they stay on their rails at every size. -->
+  <Geometry x:Key="IconSliders">M 3 7 H 21 M 3 17 H 21</Geometry>
+
+  <!-- preset: a bookmark -->
+  <Geometry x:Key="IconBookmark">M 5 3 H 19 V 21 L 12 15.5 L 5 21 Z</Geometry>
+
+  <!-- browse: an open folder -->
+  <Geometry x:Key="IconBrowse">M 2.5 19 V 5.5 H 9.5 L 12 8 H 18 M 2.5 19 L 5.5 10.5 H 21.5 L 18.5 19 Z</Geometry>
+
+  <!-- the brand mark: a bolt -->
+  <Geometry x:Key="IconBolt">M 14 2 L 4 13 H 11 L 10 22 L 20 11 H 13 Z</Geometry>
+
+  <!-- refresh / run again -->
+  <Geometry x:Key="IconRefresh">M 20 12 A 8 8 0 1 1 17.9 6.4 M 18 2.8 V 6.6 H 14.2</Geometry>
+
+  <!-- information -->
+  <Geometry x:Key="IconInfo">M 12 2.5 A 9.5 9.5 0 1 1 11.99 2.5 Z M 12 10 V 16.5 M 12 6.6 V 6.7</Geometry>
+
+  <!-- an empty-state marker: a sheet of paper -->
+  <Geometry x:Key="IconSheet">M 5 3 H 14 L 19 8 V 21 H 5 Z M 14 3 V 8 H 19 M 9 12.5 H 15 M 9 16 H 15</Geometry>
+
+</ResourceDictionary>

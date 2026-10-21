@@ -1,0 +1,929 @@
+<UserControl x:Class="CodeScope.Views.ConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CodeScope.Controls"
+             xmlns:models="clr-namespace:CodeScope.Models"
+             FontFamily="Segoe UI">
+
+  <UserControl.Resources>
+    <Style x:Key="GroupCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="Padding" Value="20" />
+      <Setter Property="Margin" Value="0,0,0,18" />
+    </Style>
+
+    <Style x:Key="GroupTitleStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,2" />
+    </Style>
+
+    <Style x:Key="GroupHintStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="OptionLabelStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="OptionHelpStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="OptionInputStyle" TargetType="TextBox" BasedOn="{StaticResource InputStyle}">
+      <Setter Property="Margin" Value="0,4" />
+    </Style>
+
+    <Style x:Key="SmallComboStyle" TargetType="ComboBox" BasedOn="{StaticResource ComboStyle}">
+      <Setter Property="Margin" Value="0,4" />
+      <Setter Property="MaxDropDownHeight" Value="320" />
+    </Style>
+
+    <!-- Output rows: the button sits exactly as tall as the text field. -->
+    <Style x:Key="OutputInputStyle" TargetType="TextBox" BasedOn="{StaticResource InputStyle}">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="OutputButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="14,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- A highlighted step number -->
+    <Style x:Key="StepBadgeStyle" TargetType="Border">
+      <Setter Property="Width" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="CornerRadius" Value="11" />
+      <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+      <Setter Property="Margin" Value="0,0,10,0" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <Style x:Key="StepBadgeTextStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Mode selector buttons: keep the accent fill on hover. The shared
+         secondary template swaps in a neutral hover surface, which would
+         leave the accent-coloured label unreadable. -->
+    <Style x:Key="ModeButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMd}"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <Grid>
+                <Border x:Name="HoverOverlay" Background="{DynamicResource HoverOverlayBrush}"
+                        CornerRadius="{StaticResource RadiusMd}" Opacity="0" />
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard><Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverOverlay" Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="0:0:0.12" />
+                      </Storyboard></BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard><Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverOverlay" Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="0:0:0.16" />
+                      </Storyboard></BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Opacity" Value="0.85" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Mode selector buttons -->
+    <Style x:Key="InAppModeButtonStyle" TargetType="Button" BasedOn="{StaticResource ModeButtonStyle}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ExportHtml}" Value="False">
+          <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+          <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="HtmlModeButtonStyle" TargetType="Button" BasedOn="{StaticResource ModeButtonStyle}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ExportHtml}" Value="True">
+          <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+          <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <!-- ============ bottom action bar ============ -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+            Padding="18,12">
+      <StackPanel>
+        <TextBlock Text="{Binding ErrorMessage}"
+                   Foreground="{DynamicResource DangerBrush}" FontSize="12.5"
+                   TextWrapping="Wrap" Margin="0,0,0,8"
+                   Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="{Binding GenerateButtonText}"
+                    Command="{Binding GenerateCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    MinWidth="220" />
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="10,0,0,0"
+                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+            <Button Content="Restore defaults"
+                    Command="{Binding RestoreDefaultsCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="10,0,0,0" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- ============ scrollable configuration ============ -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,16,24,16">
+      <StackPanel MaxWidth="1080" HorizontalAlignment="Center">
+
+        <!-- ==================== 1. project ==================== -->
+        <Border Style="{StaticResource GroupCardStyle}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource StepBadgeStyle}">
+                <TextBlock Text="1" Style="{StaticResource StepBadgeTextStyle}" />
+              </Border>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Project Folder" Style="{StaticResource GroupTitleStyle}" />
+                <TextBlock Text="Pick the codebase to analyse. Everything inside it is read; nothing is written back."
+                           Style="{StaticResource GroupHintStyle}" />
+              </StackPanel>
+            </Grid>
+
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+
+              <TextBox Grid.Column="0" Style="{StaticResource InputStyle}"
+                       Text="{Binding ProjectPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       IsEnabled="{Binding CanEditConfiguration}"
+                       ToolTip="Absolute path to the folder that contains the code" />
+              <Button Grid.Column="1" Content="Browse…" Margin="8,0,0,0" Padding="14,8"
+                      Command="{Binding BrowseCommand}"
+                      Style="{StaticResource SecondaryButtonStyle}"
+                      ToolTip="Open the native folder picker" />
+              <Button Grid.Column="2" Content="Open" Margin="8,0,0,0" Padding="12,8"
+                      Command="{Binding OpenProjectFolderCommand}"
+                      Style="{StaticResource SecondaryButtonStyle}"
+                      ToolTip="Show the selected folder in File Explorer" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+              <TextBlock Text="{Binding FolderSummary}" Style="{StaticResource CaptionStyle}"
+                         VerticalAlignment="Center" />
+              <Border Background="{DynamicResource AccentSubtleBrush}" CornerRadius="4"
+                      Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center"
+                      Visibility="{Binding HasGitRepository, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="Git repository ✓" FontSize="11"
+                           Foreground="{DynamicResource AccentBrush}" />
+              </Border>
+              <Border Background="{DynamicResource WarningSubtleBrush}" CornerRadius="4"
+                      Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center"
+                      Visibility="{Binding HasGitRepository, Converter={StaticResource InvertedBoolToVisibility}}">
+                <TextBlock Text="No Git history" FontSize="11"
+                           Foreground="{DynamicResource WarningBrush}"
+                           ToolTip="History-based sections (hotspots, coupling, authors, timelines) cannot be produced for this folder." />
+              </Border>
+            </StackPanel>
+
+            <TextBlock Text="{Binding FolderWarning}" Margin="0,6,0,0" TextWrapping="Wrap"
+                       FontSize="11.5" Foreground="{DynamicResource WarningBrush}"
+                       Visibility="{Binding FolderWarning, Converter={StaticResource StringToVisibility}}" />
+          </StackPanel>
+        </Border>
+
+        <!-- ==================== 2. report contents ==================== -->
+        <Border Style="{StaticResource GroupCardStyle}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource StepBadgeStyle}">
+                <TextBlock Text="2" Style="{StaticResource StepBadgeTextStyle}" />
+              </Border>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Report Contents" Style="{StaticResource GroupTitleStyle}" />
+                <TextBlock Text="Every optional infographic section the backend supports. Turn a section off and it is omitted from both the in-app report and the HTML export."
+                           Style="{StaticResource GroupHintStyle}" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                <Button Content="All" Command="{Binding SelectAllSectionsCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" />
+                <Button Content="None" Command="{Binding ClearSectionsCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" Margin="6,0,0,0" />
+              </StackPanel>
+            </Grid>
+
+            <!-- Core sections: always present in scc's own infographic -->
+            <Border Background="{DynamicResource SurfaceAltBrush}" CornerRadius="{StaticResource RadiusMd}"
+                    Padding="12,10" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}"
+                           Text="Core sections — always included; the backend has no switch to omit them:" />
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                  <Border Style="{StaticResource ChipStyle}" Margin="0,0,8,0">
+                    <TextBlock Text="Overview &amp; Summary Metrics" FontSize="11.5"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </Border>
+                  <Border Style="{StaticResource ChipStyle}">
+                    <TextBlock Text="Language Breakdown" FontSize="11.5"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </Border>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Sections}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Columns="2" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <ContentControl Style="{StaticResource SectionTileStyle}" Margin="0,0,10,10"
+                                  ToolTip="{Binding Description}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+
+                      <StackPanel Grid.Column="0">
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock Text="{Binding Name}" FontSize="12.5"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     FontWeight="{Binding Enabled, Converter={StaticResource BoolToFontWeight}}" />
+                          <Border Background="{DynamicResource AccentSubtleBrush}" CornerRadius="3"
+                                  Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                  Visibility="{Binding RequiresGit, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding AvailabilityBadge}" FontSize="10"
+                                       Foreground="{DynamicResource AccentBrush}" />
+                          </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Description}" FontSize="11" Margin="0,2,10,0"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   TextWrapping="Wrap" MaxHeight="42" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding AvailabilityText}" FontSize="10.5" Margin="0,3,0,0"
+                                   Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap"
+                                   Visibility="{Binding AvailabilityText, Converter={StaticResource StringToVisibility}}" />
+                      </StackPanel>
+
+                      <controls:ToggleSwitch Grid.Column="1" IsChecked="{Binding Enabled, Mode=TwoWay}" />
+                    </Grid>
+                  </ContentControl>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- ==================== 3. output ==================== -->
+        <Border Style="{StaticResource GroupCardStyle}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource StepBadgeStyle}">
+                <TextBlock Text="3" Style="{StaticResource StepBadgeTextStyle}" />
+              </Border>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Output" Style="{StaticResource GroupTitleStyle}" />
+                <TextBlock Text="Show the results as a native dashboard inside the app, or let the engine write its self-contained HTML infographic."
+                           Style="{StaticResource GroupHintStyle}" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+              <Button Content="View in the app" Command="{Binding SetInAppModeCommand}"
+                      Style="{StaticResource InAppModeButtonStyle}" MinWidth="150"
+                      ToolTip="Render every selected section with native controls. No files are written." />
+              <Button Content="Export HTML report" Command="{Binding SetHtmlModeCommand}"
+                      Style="{StaticResource HtmlModeButtonStyle}" MinWidth="150" Margin="8,0,0,0"
+                      ToolTip="Write the engine's self-contained HTML infographic to disk" />
+            </StackPanel>
+
+            <StackPanel Margin="0,2,0,0">
+              <TextBlock Text="Report title" Style="{StaticResource OptionLabelStyle}" Margin="0,0,0,5" />
+              <TextBox Style="{StaticResource OutputInputStyle}"
+                       Text="{Binding ReportTitleInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       ToolTip="--report-title: shown in the report banner. Empty lets the engine derive a name from the folder." />
+
+              <!-- HTML-only settings -->
+              <StackPanel Visibility="{Binding ExportHtml, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="Report file name" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,5" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <TextBox Grid.Column="0" Style="{StaticResource OutputInputStyle}"
+                           Text="{Binding OutputFileNameInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           ToolTip="Type the HTML file name, then press Save as to remember it" />
+                  <Button Grid.Column="1" Content="Save as" Margin="8,0,0,0"
+                          Style="{StaticResource OutputButtonStyle}"
+                          Command="{Binding SaveReportFileNameCommand}"
+                          ToolTip="Remember this name. The file is written when the analysis runs." />
+                </Grid>
+
+                <TextBlock Text="{Binding OutputFileConfirmation}" FontSize="11.5" Margin="2,6,0,0"
+                           Foreground="{DynamicResource SuccessBrush}"
+                           Visibility="{Binding HasOutputFileConfirmation, Converter={StaticResource BoolToVisibility}}" />
+
+                <TextBlock Text="Folder" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,5" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <TextBox Grid.Column="0" Style="{StaticResource OutputInputStyle}"
+                           Text="{Binding OutputFolderInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           ToolTip="Where the HTML report is written. Leave empty to write beside the analysed code." />
+                  <Button Grid.Column="1" Content="Browse…" Margin="8,0,0,0"
+                          Style="{StaticResource OutputButtonStyle}"
+                          Command="{Binding BrowseOutputFolderCommand}"
+                          ToolTip="Choose the output folder" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource OptionHelpStyle}" Margin="0,8,0,0" TextWrapping="Wrap"
+                           Text="The file is written only when you run the analysis, and an existing report is never overwritten silently." />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ==================== 4. advanced settings ==================== -->
+        <controls:Collapsible Style="{StaticResource CollapsibleStyle}" Margin="0,0,0,18">
+          <controls:Collapsible.Header>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+
+              <Border Grid.Column="0" Style="{StaticResource StepBadgeStyle}">
+                <TextBlock Text="4" Style="{StaticResource StepBadgeTextStyle}" />
+              </Border>
+
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Advanced Settings" Style="{StaticResource GroupTitleStyle}" />
+                <TextBlock Text="Every CLI option that changes the numbers. Most projects never need to touch these."
+                           Style="{StaticResource GroupHintStyle}" Margin="0,2,0,0" />
+              </StackPanel>
+            </Grid>
+          </controls:Collapsible.Header>
+
+          <StackPanel Margin="20,0,20,18">
+
+              <!-- ===== Exclusions ===== -->
+              <TextBlock Text="Exclusions &amp; ignored files" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Extra directories to skip" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.ExcludeDirectories, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--exclude-dir. Added on top of the built-in .git, .hg and .svn." />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Extra files to skip" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.ExcludeFiles, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--exclude-file. Added on top of the built-in lock-file list." />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Extra ignore files" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.IgnoreFiles, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--ignore-file: additional gitignore-format files applied from the scan root." />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Exclude by regular expression" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.NotMatchRegexes, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--not-match: files or directories whose path matches are skipped." />
+
+                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,4">
+                  <UniformGrid Columns="3">
+                    <CheckBox Content="Honour .ignore files" IsChecked="{Binding Configuration.Analysis.HonourIgnoreFiles, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                              ToolTip="Off adds --no-ignore" />
+                    <CheckBox Content="Honour .sccignore files" IsChecked="{Binding Configuration.Analysis.HonourSccIgnore, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                              ToolTip="Off adds --no-scc-ignore" />
+                    <CheckBox Content="Honour .gitignore" IsChecked="{Binding Configuration.Analysis.HonourGitIgnore, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                              ToolTip="Off adds --no-gitignore" />
+                    <CheckBox Content="Honour .gitmodules" IsChecked="{Binding Configuration.Analysis.HonourGitModules, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                              ToolTip="Off adds --no-gitmodule" />
+                    <CheckBox Content="Count ignored files" IsChecked="{Binding Configuration.Analysis.CountIgnoredFiles, Mode=TwoWay}"
+                              Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                              ToolTip="--count-ignore: include files the ignore rules would exclude" />
+                  </UniformGrid>
+                </StackPanel>
+              </Grid>
+
+              <Separator Background="{DynamicResource BorderBrush}" Margin="0,14" />
+
+              <!-- ===== File filtering ===== -->
+              <TextBlock Text="File filtering &amp; large files" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Only these extensions" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.IncludeExtensions, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--include-ext, e.g. go, cs" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Never these extensions" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.ExcludeExtensions, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--exclude-ext, e.g. min.js, map" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Large-file line threshold" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.LargeFileLineCount, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--large-line-count (default 40000)" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Large-file byte threshold" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.LargeByteCount, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--large-byte-count (default 1,000,000)" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Generated-file markers" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.GeneratedMarkers, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--generated-markers: added to the built-in 'do not edit' and '&lt;auto-generated /&gt;'" />
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Minified line length" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.MinGeneratedLineByteLength, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--min-gen-line-length: average bytes per line above which a file is minified (default 255)" />
+              </Grid>
+
+              <UniformGrid Columns="3" Margin="0,10,0,4">
+                <CheckBox Content="Skip large files" IsChecked="{Binding Configuration.Analysis.SkipLargeFiles, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-large: drop files over the thresholds above" />
+                <CheckBox Content="Detect minified files" IsChecked="{Binding Configuration.Analysis.DetectMinifiedFiles, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--min" />
+                <CheckBox Content="Detect generated files" IsChecked="{Binding Configuration.Analysis.DetectGeneratedFiles, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--gen" />
+                <CheckBox Content="Exclude minified files" IsChecked="{Binding Configuration.Analysis.ExcludeMinifiedFiles, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-min: hide them from the results (implies --min)" />
+                <CheckBox Content="Exclude generated files" IsChecked="{Binding Configuration.Analysis.ExcludeGeneratedFiles, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-gen: hide them from the results (implies --gen)" />
+                <CheckBox Content="Exclude minified or generated" IsChecked="{Binding Configuration.Analysis.ExcludeMinifiedOrGenerated, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-min-gen: hide both kinds (implies --min-gen)" />
+                <CheckBox Content="Detect binary files" IsChecked="{Binding Configuration.Analysis.DetectBinaryFiles, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="Off adds --binary: disables NUL-byte detection" />
+                <CheckBox Content="Include symlinks" IsChecked="{Binding Configuration.Analysis.IncludeSymlinks, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--include-symlinks: count symlink targets" />
+                <CheckBox Content="Count unsupported as text" IsChecked="{Binding Configuration.Analysis.CountUnsupportedAsText, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--count-unsupported: unknown extensions count as an 'Unknown' language" />
+                <CheckBox Content="Remove duplicate files" IsChecked="{Binding Configuration.Analysis.RemoveDuplicates, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-duplicates: identical content counts once" />
+              </UniformGrid>
+
+              <Separator Background="{DynamicResource BorderBrush}" Margin="0,14" />
+
+              <!-- ===== Language classification ===== -->
+              <TextBlock Text="Language classification" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Count extension as" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="320" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.CountAs, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--count-as, e.g. jsp:html" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Count path patterns as" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource OptionInputStyle}"
+                         Text="{Binding Configuration.Analysis.CountAsPatterns, Mode=TwoWay, Converter={StaticResource StringList}, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--count-as-pattern, e.g. '*_spec.rb:Ruby Spec:Ruby'" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Remap unknown files" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="320" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.RemapUnknown, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--remap-unknown: content-sniff files with no known extension" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Remap all files" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="320" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.RemapAll, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--remap-all: content-sniff every file" />
+              </Grid>
+
+              <Separator Background="{DynamicResource BorderBrush}" Margin="0,14" />
+
+              <!-- ===== Metrics & cost ===== -->
+              <TextBlock Text="Metrics &amp; cost estimates" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="COCOMO project type" Style="{StaticResource OptionLabelStyle}" />
+                <ComboBox Grid.Row="0" Grid.Column="1" Style="{StaticResource SmallComboStyle}" Width="220" HorizontalAlignment="Left"
+                          SelectedValuePath="Tag" SelectedValue="{Binding Configuration.Analysis.CocomoProjectType, Mode=TwoWay}"
+                          ToolTip="--cocomo-project-type">
+                  <ComboBoxItem Content="organic (small, experienced team)" Tag="organic" />
+                  <ComboBoxItem Content="semi-detached (mixed team)" Tag="semi-detached" />
+                  <ComboBoxItem Content="embedded (complex, large team)" Tag="embedded" />
+                </ComboBox>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Average yearly wage" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.AverageWage, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--avg-wage (default 56,286)" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Overhead multiplier" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.Overhead, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--overhead (default 2.4)" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Effort adjustment factor" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.EffortAdjustmentFactor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--eaf (1.0 is nominal)" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Currency symbol" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="80" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.CurrencySymbol, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--currency-symbol" />
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="LOCOMO preset" Style="{StaticResource OptionLabelStyle}" />
+                <ComboBox Grid.Row="5" Grid.Column="1" Style="{StaticResource SmallComboStyle}" Width="220" HorizontalAlignment="Left"
+                          SelectedValuePath="Tag" SelectedValue="{Binding Configuration.Analysis.LocomoPreset, Mode=TwoWay}"
+                          ToolTip="--locomo-preset: price and throughput assumptions for regenerating the code with an LLM">
+                  <ComboBoxItem Content="large" Tag="large" />
+                  <ComboBoxItem Content="medium" Tag="medium" />
+                  <ComboBoxItem Content="small" Tag="small" />
+                  <ComboBoxItem Content="local" Tag="local" />
+                </ComboBox>
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="Review minutes per line" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.LocomoReviewMinutesPerLine, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--locomo-review (default 0.01)" />
+              </Grid>
+
+              <UniformGrid Columns="3" Margin="0,10,0,4">
+                <CheckBox Content="Compute ULOC" IsChecked="{Binding Configuration.Analysis.ComputeUloc, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--uloc: unique lines of code" />
+                <CheckBox Content="Compute DRYness" IsChecked="{Binding Configuration.Analysis.ComputeDryness, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--dryness: implies --uloc" />
+                <CheckBox Content="Cognitive complexity" IsChecked="{Binding Configuration.Analysis.ComputeCognitive, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--cognitive: nesting-weighted complexity" />
+                <CheckBox Content="Skip complexity" IsChecked="{Binding Configuration.Analysis.SkipComplexity, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-complexity" />
+                <CheckBox Content="Skip COCOMO" IsChecked="{Binding Configuration.Analysis.SkipCocomo, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--no-cocomo" />
+                <CheckBox Content="Enable LOCOMO" IsChecked="{Binding Configuration.Analysis.EstimateLocomo, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--locomo" />
+                <CheckBox Content="Compare costs side by side" IsChecked="{Binding Configuration.Analysis.CompareCosts, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--cost-comparison" />
+                <CheckBox Content="SLOCCount format" IsChecked="{Binding Configuration.Analysis.SloccountFormat, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--sloccount-format" />
+              </UniformGrid>
+
+              <Separator Background="{DynamicResource BorderBrush}" Margin="0,14" />
+
+              <!-- ===== Git history ===== -->
+              <TextBlock Text="Git history" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Commit window depth" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.HistoryDepth, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--depth: how many commits the history engine walks. 0 walks the entire history." />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Timeline buckets" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.TimelineBuckets, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--buckets (default 60)" />
+              </Grid>
+
+              <UniformGrid Columns="2" Margin="0,10,0,4">
+                <CheckBox Content="Fold author identities" IsChecked="{Binding Configuration.Analysis.FoldAuthors, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="Off adds --no-fold-authors: merge contributors by name + email domain" />
+              </UniformGrid>
+
+              <TextBlock Style="{StaticResource OptionHelpStyle}" Margin="0,4,0,0" TextWrapping="Wrap"
+                         Text="The report always ranks change coupling by raw co-change counts. The engine's weighting and blast-radius switches only affect its own CLI tables, so they are not exposed here." />
+
+              <Separator Background="{DynamicResource BorderBrush}" Margin="0,14" />
+
+              <!-- ===== Output & formatting ===== -->
+              <TextBlock Text="Output &amp; formatting" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Size unit" Style="{StaticResource OptionLabelStyle}" />
+                <ComboBox Grid.Row="0" Grid.Column="1" Style="{StaticResource SmallComboStyle}" Width="220" HorizontalAlignment="Left"
+                          SelectedValuePath="Tag" SelectedValue="{Binding Configuration.Analysis.SizeUnit, Mode=TwoWay}"
+                          ToolTip="--size-unit">
+                  <ComboBoxItem Content="SI (kB, MB)" Tag="si" />
+                  <ComboBoxItem Content="binary (KiB, MiB)" Tag="binary" />
+                  <ComboBoxItem Content="mixed" Tag="mixed" />
+                  <ComboBoxItem Content="xkcd-kb" Tag="xkcd-kb" />
+                  <ComboBoxItem Content="xkcd-kelly" Tag="xkcd-kelly" />
+                  <ComboBoxItem Content="xkcd-imaginary" Tag="xkcd-imaginary" />
+                  <ComboBoxItem Content="xkcd-intel" Tag="xkcd-intel" />
+                  <ComboBoxItem Content="xkcd-drive" Tag="xkcd-drive" />
+                  <ComboBoxItem Content="xkcd-bakers" Tag="xkcd-bakers" />
+                </ComboBox>
+              </Grid>
+
+              <UniformGrid Columns="3" Margin="0,10,0,4">
+                <CheckBox Content="Per-file rows" IsChecked="{Binding Configuration.Analysis.PerFileOutput, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--by-file" />
+                <CheckBox Content="Percentages" IsChecked="{Binding Configuration.Analysis.ShowPercentages, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--percent" />
+                <CheckBox Content="Wide output" IsChecked="{Binding Configuration.Analysis.WideOutput, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--wide" />
+                <CheckBox Content="CI-safe ASCII output" IsChecked="{Binding Configuration.Analysis.CiOutput, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--ci" />
+                <CheckBox Content="Per-language counters" IsChecked="{Binding Configuration.Analysis.UsePerLanguageCounters, Mode=TwoWay}"
+                          Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"
+                          ToolTip="--exp-per-language-counters" />
+              </UniformGrid>
+
+              <Separator Background="{DynamicResource BorderBrush}" Margin="0,14" />
+
+              <!-- ===== Performance ===== -->
+              <TextBlock Text="Performance" Style="{StaticResource GroupTitleStyle}" Margin="0,0,0,8" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Files before GC" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.FileGcCount, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--file-gc-count (default 10000)" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Directory walker workers" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource OptionInputStyle}" Width="160" HorizontalAlignment="Left"
+                         Text="{Binding Configuration.Analysis.DirectoryWalkerJobWorkers, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                         ToolTip="--directory-walker-job-workers (default 8)" />
+              </Grid>
+
+            </StackPanel>
+        </controls:Collapsible>
+
+        <!-- ==================== presets ==================== -->
+        <Border Style="{StaticResource GroupCardStyle}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource StepBadgeStyle}">
+                <TextBlock Text="5" Style="{StaticResource StepBadgeTextStyle}" />
+              </Border>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Presets" Style="{StaticResource GroupTitleStyle}" />
+                <TextBlock Text="One click restores a full configuration: sections, options and output mode together."
+                           Style="{StaticResource GroupHintStyle}" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                <Button Content="Save preset…" Command="{Binding SavePresetCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" />
+                <Button Content="Delete" Command="{Binding DeletePresetCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" Margin="6,0,0,0" />
+              </StackPanel>
+            </Grid>
+
+            <ListBox ItemsSource="{Binding Presets}"
+                     SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                     SelectionChanged="OnPresetSelected"
+                     Background="Transparent" BorderThickness="0"
+                     Foreground="{DynamicResource TextPrimaryBrush}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" FontSize="12.5" FontWeight="SemiBold" Padding="2,1">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                       Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                  <Setter Property="Cursor" Value="Hand" />
+                  <Setter Property="Margin" Value="0,0,8,6" />
+                  <Setter Property="Template">
+                    <Setter.Value>
+                      <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" CornerRadius="{StaticResource RadiusMd}" Padding="13,8"
+                                Background="{DynamicResource SurfaceAltBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                SnapsToDevicePixels="True">
+                          <Grid>
+                            <Border x:Name="HoverOverlay" Background="{DynamicResource HoverOverlayBrush}"
+                                    CornerRadius="{StaticResource RadiusMd}" Opacity="0" />
+                            <ContentPresenter />
+                          </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                          <!-- Hover first: a selected chip must keep its accent
+                               background, otherwise the accent foreground text
+                               turns unreadable on the hover surface. -->
+                          <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Trigger.EnterActions>
+                              <BeginStoryboard><Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="HoverOverlay" Storyboard.TargetProperty="Opacity"
+                                                     To="1" Duration="0:0:0.12" />
+                                  </Storyboard></BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                              <BeginStoryboard><Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="HoverOverlay" Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.16" />
+                                  </Storyboard></BeginStoryboard>
+                            </Trigger.ExitActions>
+                          </Trigger>
+                          <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="HoverOverlay" Property="Opacity" Value="0" />
+                          </Trigger>
+                        </ControlTemplate.Triggers>
+                      </ControlTemplate>
+                    </Setter.Value>
+                  </Setter>
+                </Style>
+              </ListBox.ItemContainerStyle>
+            </ListBox>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

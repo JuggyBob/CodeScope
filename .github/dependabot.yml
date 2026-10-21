@@ -1,0 +1,24 @@
+version: 2
+
+updates:
+  # The application has no NuGet packages today, but it will pick some up
+  # eventually; this keeps that honest.
+  - package-ecosystem: nuget
+    directory: "/src/CodeScope.App"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: nuget
+    directory: "/tests/CodeScope.Tests"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+
+  # The vendored snapshot of the engine is deliberately frozen; it is moved
+  # forward by hand, following BACKEND-UPDATE.md, and never by dependabot.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5

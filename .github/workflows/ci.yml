@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # The version the frozen snapshot asks for; the build script refuses
+          # to download a different toolchain.
+          go-version-file: vendor/scc-source/go.mod
+          cache: false
+
+      - name: Build the bundled engine
+        shell: pwsh
+        run: ./build/build-backend.ps1
+
+      - name: Restore (locked)
+        run: dotnet restore CodeScope.sln --locked-mode
+
+      - name: Build
+        run: dotnet build CodeScope.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet run --project tests/CodeScope.Tests -c Release --no-build
+
+      - name: Publish
+        shell: pwsh
+        run: ./build/publish.ps1
+
+      - name: Upload the published build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodeScope-windows-x64
+          path: publish/CodeScope
+          if-no-files-found: error
+          retention-days: 14
+
+  self-contained:
+    name: Publish (self-contained)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: build-and-test
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: vendor/scc-source/go.mod
+          cache: false
+
+      - name: Build the bundled engine
+        shell: pwsh
+        run: ./build/build-backend.ps1
+
+      - name: Publish with the runtime included
+        shell: pwsh
+        run: ./build/publish.ps1 -SelfContained
+
+      - name: Upload the self-contained build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodeScope-windows-x64-self-contained
+          path: publish/CodeScope
+          if-no-files-found: error
+          retention-days: 14

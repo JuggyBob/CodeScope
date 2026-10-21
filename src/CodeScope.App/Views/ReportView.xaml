@@ -1,0 +1,653 @@
+<UserControl x:Class="CodeScope.Views.ReportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Segoe UI">
+
+  <UserControl.Resources>
+    <Style x:Key="PanelStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="Padding" Value="20" />
+      <Setter Property="Margin" Value="0,0,0,18" />
+    </Style>
+
+    <Style x:Key="PanelTitleStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="PanelHintStyle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="MetricValueStyle" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="SectionBarStyle" TargetType="Rectangle">
+      <Setter Property="Height" Value="14" />
+      <Setter Property="Margin" Value="0,0,1,0" />
+    </Style>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <!-- ================= report toolbar =================
+         The title and the totals live in the application bar, so this row
+         only carries what is specific to the report itself. -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+            Padding="18,10">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Button Grid.Column="0" Content="← Back to setup"
+                Command="{Binding BackCommand}"
+                Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center" />
+
+        <StackPanel Grid.Column="1" Margin="16,0,10,0" VerticalAlignment="Center"
+                    HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Data.Path}" FontSize="11.5"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       TextTrimming="CharacterEllipsis" MaxWidth="420" />
+            <TextBlock Text="  ·  " FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}" />
+            <TextBlock Text="{Binding EngineText}" FontSize="11.5"
+                       Foreground="{DynamicResource TextTertiaryBrush}" />
+            <TextBlock Text="  ·  " FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}" />
+            <TextBlock Text="{Binding DurationText}" FontSize="11.5"
+                       Foreground="{DynamicResource TextTertiaryBrush}" />
+          </StackPanel>
+        </StackPanel>
+
+        <Button Grid.Column="2" Content="Export HTML report"
+                Command="{Binding ExportHtmlCommand}"
+                Style="{StaticResource SecondaryButtonStyle}"
+                ToolTip="Write the same section selection as a self-contained HTML infographic" />
+      </Grid>
+    </Border>
+
+    <!-- ================= unavailable notice ================= -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource WarningSubtleBrush}"
+            BorderBrush="{DynamicResource WarningBrush}" BorderThickness="0,0,0,1"
+            Padding="18,10"
+            Visibility="{Binding HasUnavailableSections, Converter={StaticResource BoolToVisibility}}">
+      <ItemsControl ItemsSource="{Binding Unavailable}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal" Margin="0,1">
+              <TextBlock Text="⚠" Foreground="{DynamicResource WarningBrush}" Margin="0,0,6,0" />
+              <TextBlock FontSize="12">
+                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" />
+                <Run Text=" — " />
+                <Run Text="{Binding Reason, Mode=OneWay}" />
+              </TextBlock>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <!-- ================= notes from the engine ================= -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource SurfaceAltBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+            Padding="18,10"
+            Visibility="{Binding HasEngineNotes, Converter={StaticResource BoolToVisibility}}">
+      <ItemsControl ItemsSource="{Binding EngineNotes}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal" Margin="0,1">
+              <TextBlock Text="•" Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,0,8,0" />
+              <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <!-- ================= scrolling body ================= -->
+    <ScrollViewer x:Name="Body" VerticalScrollBarVisibility="Auto" Padding="24,18,24,18">
+      <StackPanel MaxWidth="1240" HorizontalAlignment="Center">
+
+        <!-- ============ overview: metric cards ============ -->
+        <Border Style="{StaticResource PanelStyle}">
+          <StackPanel>
+            <TextBlock Text="Overview" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="Totals across the working tree, counted by the engine's own analysers." />
+
+            <ItemsControl ItemsSource="{Binding MetricCards}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,8,0">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Label}" FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Text="{Binding Value}" Style="{StaticResource MetricValueStyle}" />
+                      <TextBlock Text="{Binding SubLabel}" FontSize="10.5"
+                                 Foreground="{DynamicResource TextTertiaryBrush}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                        Visibility="{Binding CostSummaryText, Converter={StaticResource StringToVisibility}}">
+              <TextBlock Text="{Binding CostSummaryText}" FontSize="12"
+                         Foreground="{DynamicResource AccentBrush}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ language breakdown ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding Data.Languages.Count, Converter={StaticResource IntGreaterThanZero}}">
+          <StackPanel>
+            <TextBlock Text="Language Breakdown" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="Share of code per language. Hover the bar for the exact count." />
+
+            <Viewbox Stretch="Fill" HorizontalAlignment="Stretch" Height="18">
+              <StackPanel Orientation="Horizontal" Width="1000" Height="14" VerticalAlignment="Top">
+                <ItemsControl ItemsSource="{Binding LanguageSegments}" Width="1000">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Rectangle Style="{StaticResource SectionBarStyle}"
+                                 Width="{Binding Width}"
+                                 Fill="{Binding SeriesIndex, Converter={StaticResource SeriesIndexToBrush}}"
+                                 ToolTip="{Binding ToolTipText}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Viewbox>
+
+            <ItemsControl ItemsSource="{Binding LanguageSegments}" Margin="0,8,0,10">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,14,4">
+                    <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2" VerticalAlignment="Center"
+                               Fill="{Binding SeriesIndex, Converter={StaticResource SeriesIndexToBrush}}" />
+                    <TextBlock Text="{Binding Label}" FontSize="11.5" Margin="5,0,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Style="{StaticResource TableHostStyle}">
+              <DataGrid Tag="Languages" ItemsSource="{Binding Languages}"
+                        Style="{StaticResource ReportGridStyle}" Sorting="OnTableSorting"
+                        MaxHeight="300">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Language" Binding="{Binding Name}" SortMemberPath="Name" Width="180" />
+                  <DataGridTextColumn Header="Files" Binding="{Binding Count, StringFormat={}{0:N0}}" SortMemberPath="Count" Width="80" />
+                  <DataGridTextColumn Header="Lines" Binding="{Binding Lines, StringFormat={}{0:N0}}" SortMemberPath="Lines" Width="100" />
+                  <DataGridTextColumn Header="Code" Binding="{Binding Code, StringFormat={}{0:N0}}" SortMemberPath="Code" Width="100" />
+                  <DataGridTextColumn Header="Comment" Binding="{Binding Comment, StringFormat={}{0:N0}}" SortMemberPath="Comment" Width="100" />
+                  <DataGridTextColumn Header="Blank" Binding="{Binding Blank, StringFormat={}{0:N0}}" SortMemberPath="Blank" Width="90" />
+                  <DataGridTextColumn Header="Complexity" Binding="{Binding Complexity, StringFormat={}{0:N0}}" SortMemberPath="Complexity" Width="110" />
+                  <DataGridTextColumn Header="Bytes" Binding="{Binding Bytes, StringFormat={}{0:N0}}" SortMemberPath="Bytes" Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ ULOC ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowUniqueLines, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Unique Lines of Code" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="{Binding UlocSummaryText}" />
+
+            <ItemsControl ItemsSource="{Binding UlocLanguages}"
+                          Visibility="{Binding ShowUlocDetail, Converter={StaticResource BoolToVisibility}}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,10,10" Padding="12,8" MinWidth="120">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Language}" FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Text="{Binding UlocText}" FontSize="15"
+                                 FontFamily="Cascadia Mono, Consolas, monospace"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ line length ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowLineLength, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Line-Length Distribution" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="How long the codebase's lines are, bucketed exactly as the engine buckets them." />
+
+            <Viewbox Stretch="Uniform" HorizontalAlignment="Left">
+              <StackPanel Orientation="Horizontal" Height="150" VerticalAlignment="Bottom">
+                <ItemsControl ItemsSource="{Binding HistogramBars}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Width="120" Margin="0,0,10,0">
+                        <Border Height="120" VerticalAlignment="Bottom"
+                                Background="{DynamicResource SurfaceAltBrush}" CornerRadius="3">
+                          <Rectangle Height="{Binding Height}" VerticalAlignment="Bottom"
+                                     Fill="{DynamicResource AccentBrush}" RadiusX="2" RadiusY="2"
+                                     ToolTip="{Binding ToolTipText}" />
+                        </Border>
+                        <TextBlock Text="{Binding CountText}" FontSize="11" HorizontalAlignment="Center"
+                                   Margin="0,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="{Binding Label}" FontSize="10.5" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Viewbox>
+
+            <StackPanel Margin="0,14,0,0"
+                        Visibility="{Binding HasOutliers, Converter={StaticResource BoolToVisibility}}">
+              <TextBlock Text="Longest lines" FontSize="12.5" FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6" />
+              <Border Style="{StaticResource TableHostStyle}">
+                <DataGrid Tag="Outliers" ItemsSource="{Binding Outliers}"
+                          Style="{StaticResource ReportGridStyle}" Sorting="OnTableSorting"
+                          MaxHeight="200" MouseDoubleClick="OnOutliersGridDoubleClick"
+                          ToolTip="Double-click a row to show the file in File Explorer">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="File" Binding="{Binding File}" SortMemberPath="File" Width="*" />
+                    <DataGridTextColumn Header="Language" Binding="{Binding Language}" SortMemberPath="Language" Width="140" />
+                    <DataGridTextColumn Header="Characters" Binding="{Binding LineLengthText}" SortMemberPath="LineLength" Width="*" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Border>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ hotspots ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowHotspots, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Code Hotspots" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="Files ranked by complexity weighted with how often and how much they change. Nothing here is inferred: every column comes from the engine's Git walk." />
+
+            <Border Style="{StaticResource TableHostStyle}">
+              <DataGrid Tag="Hotspots" ItemsSource="{Binding Hotspots}" Style="{StaticResource ReportGridStyle}" Sorting="OnTableSorting"
+                        MaxHeight="340" MouseDoubleClick="OnHotspotsGridDoubleClick"
+                        ToolTip="Double-click a row to show the file in File Explorer">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="File" Binding="{Binding File}" SortMemberPath="File" Width="*" />
+                  <DataGridTextColumn Header="Language" Binding="{Binding Language}" SortMemberPath="Language" Width="130" />
+                  <DataGridTextColumn Header="Complexity" Binding="{Binding ComplexityText}" SortMemberPath="Complexity" Width="100" />
+                  <DataGridTextColumn Header="Commits" Binding="{Binding CommitsText}" SortMemberPath="Commits" Width="85" />
+                  <DataGridTextColumn Header="Lines changed" Binding="{Binding LinesChangedText}" SortMemberPath="LinesChanged" Width="115" />
+                  <DataGridTextColumn Header="Authors" Binding="{Binding AuthorsText}" SortMemberPath="Authors" Width="80" />
+                  <DataGridTextColumn Header="Code churn" Binding="{Binding ChurnText}" SortMemberPath="Churn" Width="105" />
+                  <DataGridTextColumn Header="Score" Binding="{Binding ScoreText}" SortMemberPath="Score" Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ coupling ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowCoupling, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Change Coupling" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="File pairs that keep changing in the same commits — candidates to keep or change together." />
+
+            <Border Style="{StaticResource TableHostStyle}">
+              <DataGrid Tag="Coupling" ItemsSource="{Binding Coupling}" Style="{StaticResource ReportGridStyle}" Sorting="OnTableSorting"
+                        MaxHeight="340" MouseDoubleClick="OnCouplingGridDoubleClick"
+                        ToolTip="Double-click a row to show the file in File Explorer — File A, or File B when its column is double-clicked">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="File A" Binding="{Binding FileA}" SortMemberPath="FileA" Width="*" />
+                  <DataGridTextColumn Header="File B" Binding="{Binding FileB}" SortMemberPath="FileB" Width="*" />
+                  <DataGridTextColumn Header="Shared commits" Binding="{Binding SharedText}" SortMemberPath="Shared" Width="130" />
+                  <DataGridTextColumn Header="Degree" Binding="{Binding DegreeText}" SortMemberPath="Degree" Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ authors ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowAuthors, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Author Statistics" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="{Binding BusFactorText}" />
+
+            <Border Style="{StaticResource TableHostStyle}">
+              <DataGrid Tag="Authors" ItemsSource="{Binding Authors}" Style="{StaticResource ReportGridStyle}" Sorting="OnTableSorting"
+                        MaxHeight="340">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Author" Binding="{Binding Name}" SortMemberPath="Name" Width="170" />
+                  <DataGridTextColumn Header="Email" Binding="{Binding Email}" SortMemberPath="Email" Width="200" />
+                  <DataGridTextColumn Header="Code owned" Binding="{Binding CodeText}" SortMemberPath="Code" Width="110" />
+                  <DataGridTextColumn Header="Comment" Binding="{Binding CommentText}" SortMemberPath="Comment" Width="100" />
+                  <DataGridTextColumn Header="Complexity" Binding="{Binding ComplexityText}" SortMemberPath="Complexity" Width="110" />
+                  <DataGridTextColumn Header="Files" Binding="{Binding FilesText}" SortMemberPath="Files" Width="80" />
+                  <DataGridTextColumn Header="Owns" Binding="{Binding OwnsText}" SortMemberPath="Owns" Width="85" />
+                  <DataGridTextColumn Header="Last commit" Binding="{Binding LastCommitText}" SortMemberPath="LastCommit" Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ timeline ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowTimeline, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Language Timeline" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="Per-language code volume across the commit window. Teal bars grew, red bars shrank." />
+
+            <ItemsControl ItemsSource="{Binding LanguageTimelineRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="140" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Language}" FontSize="12"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                      <TextBlock Text="{Binding TrajectoryText}" FontSize="10.5"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </StackPanel>
+
+                    <Viewbox Grid.Column="1" Stretch="Uniform" HorizontalAlignment="Stretch">
+                      <ItemsControl ItemsSource="{Binding Bars}" Height="44" Width="460">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Rectangle Height="{Binding Height}">
+                              <Rectangle.Style>
+                                <Style TargetType="Rectangle">
+                                  <Setter Property="Width" Value="7" />
+                                  <Setter Property="Margin" Value="0,0,1,0" />
+                                  <Setter Property="VerticalAlignment" Value="Bottom" />
+                                  <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Positive}" Value="False">
+                                      <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </Rectangle.Style>
+                            </Rectangle>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Viewbox>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                      <TextBlock Text="{Binding ChangeText}" FontSize="12" TextAlignment="Right"
+                                 FontFamily="Cascadia Mono, Consolas, monospace">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding ChangeText}" Value="+0">
+                                <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                      <TextBlock Text="{Binding ShareText}" FontSize="10.5" TextAlignment="Right"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ author timeline ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowAuthorTimeline, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Author Timeline" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="Code added and removed per contributor across the commit window." />
+
+            <ItemsControl ItemsSource="{Binding AuthorTimelineRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="140" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Author}" FontSize="12"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                      <TextBlock Text="{Binding CommitsText}" FontSize="10.5"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </StackPanel>
+
+                    <Viewbox Grid.Column="1" Stretch="Uniform" HorizontalAlignment="Stretch">
+                      <ItemsControl ItemsSource="{Binding Bars}" Height="34" Width="460">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Rectangle Height="{Binding Height}">
+                              <Rectangle.Style>
+                                <Style TargetType="Rectangle">
+                                  <Setter Property="Width" Value="7" />
+                                  <Setter Property="Margin" Value="0,0,1,0" />
+                                  <Setter Property="VerticalAlignment" Value="Bottom" />
+                                  <Setter Property="Fill" Value="{DynamicResource Series2Brush}" />
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Positive}" Value="False">
+                                      <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </Rectangle.Style>
+                            </Rectangle>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Viewbox>
+
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" TextAlignment="Right"
+                               Text="{Binding DeltaText}" FontSize="12"
+                               FontFamily="Cascadia Mono, Consolas, monospace"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ cost estimates ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowCocomo, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="COCOMO Estimate" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="What it would have cost a team of developers to write this codebase from scratch." />
+
+            <ItemsControl ItemsSource="{Binding CocomoCards}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,10,10">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Label}" FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Text="{Binding Value}" Style="{StaticResource MetricValueStyle}" />
+                      <TextBlock Text="{Binding SubLabel}" FontSize="10.5" TextWrapping="Wrap"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowLocomo, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <TextBlock Text="LOCOMO Estimate" Style="{StaticResource PanelTitleStyle}" />
+            <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                       Text="What it would cost an LLM to regenerate the codebase, and how long a human review of the result takes." />
+
+            <ItemsControl ItemsSource="{Binding LocomoCards}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource MetricCardStyle}" Margin="0,0,10,10">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Label}" FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Text="{Binding Value}" Style="{StaticResource MetricValueStyle}" />
+                      <TextBlock Text="{Binding SubLabel}" FontSize="10.5" TextWrapping="Wrap"
+                                 Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- ============ per-file table ============ -->
+        <Border Style="{StaticResource PanelStyle}"
+                Visibility="{Binding ShowFiles, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="Per-File Statistics" Style="{StaticResource PanelTitleStyle}" />
+                <TextBlock Style="{StaticResource PanelHintStyle}" Margin="0,2,0,10"
+                           Text="Every analysed file. Click a column heading to sort." />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <TextBox Style="{StaticResource InputStyle}" Width="240"
+                         Text="{Binding FileQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Filter by path, file name or language" />
+                <ComboBox Style="{StaticResource ComboStyle}" Width="170" Margin="8,0,0,0"
+                          ItemsSource="{Binding LanguageOptions}"
+                          SelectedItem="{Binding LanguageFilter, Mode=TwoWay}"
+                          ToolTip="Limit the table to one language" />
+              </StackPanel>
+            </Grid>
+
+            <TextBlock Text="{Binding FileResultSummary}" Style="{StaticResource PanelHintStyle}"
+                       Margin="0,0,0,8" />
+
+            <Border Style="{StaticResource TableHostStyle}">
+              <DataGrid x:Name="FilesGrid" Tag="Files"
+                        ItemsSource="{Binding Files}" Style="{StaticResource ReportGridStyle}"
+                        Height="420" MouseDoubleClick="OnFilesGridDoubleClick"
+                        Sorting="OnTableSorting"
+                        ToolTip="Double-click a row to show the file in File Explorer">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="File" Binding="{Binding Location}" SortMemberPath="Location" Width="2*" />
+
+                  <DataGridTextColumn Header="Language" Binding="{Binding Language}" SortMemberPath="Language" Width="120" />
+
+                  <DataGridTextColumn Header="Lines" Binding="{Binding Lines, StringFormat={}{0:N0}}" SortMemberPath="Lines" Width="95" />
+
+                  <DataGridTextColumn Header="Code" Binding="{Binding Code, StringFormat={}{0:N0}}" SortMemberPath="Code" Width="95" />
+
+                  <DataGridTextColumn Header="Comment" Binding="{Binding Comment, StringFormat={}{0:N0}}" SortMemberPath="Comment" Width="95" />
+
+                  <DataGridTextColumn Header="Blank" Binding="{Binding Blank, StringFormat={}{0:N0}}" SortMemberPath="Blank" Width="85" />
+
+                  <DataGridTextColumn Header="Complexity" Binding="{Binding Complexity, StringFormat={}{0:N0}}" SortMemberPath="Complexity" Width="105" />
+
+                  <DataGridTextColumn Header="Bytes" Binding="{Binding Bytes, StringFormat={}{0:N0}}" SortMemberPath="Bytes" Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Style="{StaticResource PanelHintStyle}" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextTertiaryBrush}"
+                   Text="Rendered natively from the engine's own report data. No HTML file is created in this mode." />
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

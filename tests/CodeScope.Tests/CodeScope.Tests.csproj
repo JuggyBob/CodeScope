@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>CodeScope.Tests</RootNamespace>
+    <AssemblyName>CodeScope.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      A lock file, so a restore always resolves to the same packages. The
+      project deliberately has no package references at all — it is a plain
+      console runner — and the lock file records exactly that.
+    -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <!-- No test framework: the suite is a plain console runner so it stays
+       dependency-free and runs on a machine with no NuGet access. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CodeScope.App\CodeScope.App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\backend\scc.exe" CopyToOutputDirectory="PreserveNewest"
+          Link="backend\scc.exe" Condition="Exists('..\..\backend\scc.exe')" />
+    <None Include="..\..\backend\codescope-export.exe" CopyToOutputDirectory="PreserveNewest"
+          Link="backend\codescope-export.exe" Condition="Exists('..\..\backend\codescope-export.exe')" />
+  </ItemGroup>
+
+</Project>

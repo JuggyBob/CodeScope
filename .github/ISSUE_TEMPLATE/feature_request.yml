@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest something the application should do
+title: "[feature] "
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us what you would like the application to do. A short description
+        is fine — a use case, an example, or a screenshot of another tool you
+        like.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation that led to the request.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: How the application should behave instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
+      description: Workarounds, or other tools that do this today.
+
+  - type: checkboxes
+    id: sections
+    attributes:
+      label: Which part of the application is this about?
+      options:
+        - label: The configuration screen
+        - label: The report dashboard
+        - label: The HTML export
+        - label: The history
+        - label: The build and packaging
+        - label: Something else
