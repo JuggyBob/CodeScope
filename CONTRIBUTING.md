@@ -21,12 +21,19 @@ project up, how to branch, and what a pull request is expected to look like.
 | --- | --- | --- |
 | [.NET SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | 8.0.4xx or later | Building and running the application |
 | [Go toolchain](https://go.dev/dl/) | 1.26.4 (see `vendor/scc-source/go.mod`) | Rebuilding the bundled engine |
+| [Inno Setup 6](https://jrsoftware.org/isdl.php) | 6.7 or later | Building the Windows installer |
 | Windows PowerShell | 5.1 or later | The build scripts |
 | Git | any recent version | Everything else |
 
 Visual Studio 2022 (17.9 or later, with the ".NET desktop development" workload)
 and Rider both work; the project is a plain .NET solution with no package
 references.
+
+Inno Setup is only needed for the installer:
+
+```powershell
+winget install --id JRSoftware.InnoSetup --exact --scope user
+```
 
 The application has **no NuGet packages**. JSON, process hosting, theming,
 charts and dialogs are all built on the .NET 8 base class library and WPF, so
@@ -149,6 +156,9 @@ dotnet run --project tests\CodeScope.Tests -c Release
 
 # the suite without the integration tests that need the engine
 powershell -ExecutionPolicy Bypass -File build\build.ps1 -SkipBackend
+
+# the Windows installer (needs Inno Setup 6)
+powershell -ExecutionPolicy Bypass -File build\build-installer.ps1
 ```
 
 The suite has no test-framework dependency — it is a console program that

@@ -33,6 +33,10 @@ jobs:
           go-version-file: vendor/scc-source/go.mod
           cache: false
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: winget install --id JRSoftware.InnoSetup --exact --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+
       - name: Build the bundled engine
         shell: pwsh
         run: ./build/build-backend.ps1
@@ -46,23 +50,23 @@ jobs:
       - name: Test
         run: dotnet run --project tests/CodeScope.Tests -c Release --no-build
 
-      # The small build: the target machine needs the .NET 8 desktop runtime.
-      - name: Publish
+      # The installer: it checks for the .NET 8 desktop runtime and can add it
+      # from the copy inside the setup when the machine does not have it.
+      - name: Build the installer
         shell: pwsh
-        run: ./build/publish.ps1
-
-      - name: Zip the published build
-        shell: pwsh
-        run: Compress-Archive -Path publish/CodeScope/* -DestinationPath CodeScope-windows-x64.zip
+        run: ./build/build-installer.ps1 -OutputDir "${{ github.workspace }}/release-files"
 
       # The large build: it carries the runtime, so it runs on a clean machine.
       - name: Publish with the runtime included
         shell: pwsh
         run: ./build/publish.ps1 -SelfContained
 
-      - name: Zip the self-contained build
+      - name: Collect the release files
         shell: pwsh
-        run: Compress-Archive -Path publish/CodeScope/* -DestinationPath CodeScope-windows-x64-self-contained.zip
+        run: |
+          Copy-Item release-files/CodeScope-Setup.exe .
+          Copy-Item release-files/CodeScope-portable.zip .
+          Compress-Archive -Path publish/CodeScope/* -DestinationPath CodeScope-windows-x64-self-contained.zip
 
       - name: Publish the release
         uses: softprops/action-gh-release@v2
@@ -73,5 +77,6 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
           files: |
-            CodeScope-windows-x64.zip
+            CodeScope-Setup.exe
+            CodeScope-portable.zip
             CodeScope-windows-x64-self-contained.zip

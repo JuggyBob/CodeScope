@@ -64,6 +64,14 @@ both of which permit redistribution of the libraries in object form. The
 published folder contains the runtime's own licence and notice files where the
 licence requires them.
 
+The **installer** (`CodeScope-Setup.exe`) carries Microsoft's own
+`windowsdesktop-runtime-8.0.31-win-x64.exe` and offers to run it when the
+machine does not already have the .NET 8 desktop runtime. That file is
+Microsoft's, is downloaded from `builds.dotnet.microsoft.com` over HTTPS and is
+checked against a pinned SHA-256 before it is packed into the setup. The
+runtime it installs is covered by the MIT licence and the .NET Library License
+above.
+
 ---
 
 ## Icons and fonts

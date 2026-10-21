@@ -12,6 +12,11 @@
 /backend/*
 !/backend/.gitkeep
 
+# The .NET runtime installer that the setup offers to install. It is
+# downloaded from Microsoft by build/build-installer.ps1 and checked against a
+# pinned hash, so it is not kept in the repository either.
+/build/installer/runtime/
+
 # Visual Studio / Rider / VS Code
 .vs/
 .idea/

@@ -85,6 +85,25 @@ The app never writes to the folder you analyse. The in-app report writes
 nothing at all; the HTML export writes exactly one `.html` file, to a folder
 you choose — or beside the analysed code if you leave the folder empty.
 
+### Or run the installer
+
+`CodeScope-Setup.exe` does the whole thing: it installs the application for the
+current user (no administrator rights needed), adds a Start menu shortcut and a
+proper uninstaller, and — this is the useful part — **looks for the .NET 8
+desktop runtime first**:
+
+* **If the runtime is already installed**, the setup says so and installs
+  nothing extra. The box on the "Ready to install" page is ticked by default;
+  untick it and the runtime is left alone.
+* **If the runtime is missing**, the setup carries a copy of Microsoft's own
+  runtime installer and offers to add it, so the application works the moment
+  it is installed. It is installed for the whole machine, so Windows will ask
+  for administrator rights at that point.
+
+There is also `CodeScope-portable.zip` — the application with no installer at
+all. Unzip it anywhere and run `CodeScope.exe`; it still needs the .NET 8
+desktop runtime.
+
 ---
 
 ## What it does
@@ -195,6 +214,31 @@ powershell -ExecutionPolicy Bypass -File build\publish.ps1 -SelfContained
 
 The published folder lands in `publish\CodeScope\`.
 
+### Building the installer
+
+The installer is built with [Inno Setup 6](https://jrsoftware.org/isdl.php).
+Install it once:
+
+```powershell
+winget install --id JRSoftware.InnoSetup --exact --scope user
+```
+
+Then:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build\build-installer.ps1
+```
+
+That publishes the application, downloads Microsoft's .NET 8 desktop runtime
+installer (checking it against a pinned SHA-256), compiles
+`build\installer\CodeScope.iss` and writes two files to
+`..\PublishExecutables\`:
+
+| File | What it is |
+| --- | --- |
+| `CodeScope-Setup.exe` | The installer. Installs for the current user and can add the .NET 8 runtime if it is missing. |
+| `CodeScope-portable.zip` | The application alone, for people who would rather not install anything. |
+
 The application carries **no NuGet packages**. JSON, process hosting, theming,
 charts and dialogs are all built on the .NET 8 BCL and WPF, so `dotnet build`
 and `dotnet publish` work with no package feed at all — the lock file records
@@ -264,7 +308,9 @@ To move the pin forward, follow `BACKEND-UPDATE.md`.
 ├── build/
 │   ├── build-backend.ps1    rebuild both executables from the snapshot
 │   ├── build.ps1            build + test
+│   ├── build-installer.ps1  build the Windows installer
 │   ├── publish.ps1          publish the application
+│   ├── installer/           the Inno Setup script and its readme
 │   └── adapter/main.go      copy of the adapter kept outside the snapshot
 ├── docs/                    screenshots
 ├── src/CodeScope.App/

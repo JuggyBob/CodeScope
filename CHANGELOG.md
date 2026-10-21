@@ -22,6 +22,13 @@ The first public release.
 
 ### Added
 
+- **A Windows installer.** `CodeScope-Setup.exe` installs the application for
+  the current user, adds a Start menu shortcut and a proper uninstaller, and
+  checks for the .NET 8 desktop runtime first: when it is missing, the setup
+  carries a copy of Microsoft's own runtime installer and offers to add it, so
+  the application works the moment it is installed.
+- **A portable build.** `CodeScope-portable.zip` is the application with no
+  installer at all, for people who would rather not install anything.
 - **Native Windows front end** for the scc analysis engine: a WPF application
   that presents the engine's report natively instead of only as an HTML file.
 - **In-app report dashboard** with metric cards, a language distribution bar,

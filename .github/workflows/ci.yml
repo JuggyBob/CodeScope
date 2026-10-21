@@ -62,6 +62,47 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  installer:
+    name: Build the installer
+    runs-on: windows-latest
+    timeout-minutes: 40
+    needs: build-and-test
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: vendor/scc-source/go.mod
+          cache: false
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: winget install --id JRSoftware.InnoSetup --exact --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+
+      - name: Build the bundled engine
+        shell: pwsh
+        run: ./build/build-backend.ps1
+
+      - name: Build the installer
+        shell: pwsh
+        run: ./build/build-installer.ps1 -OutputDir "${{ github.workspace }}/installer-output"
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodeScope-Setup
+          path: installer-output
+          if-no-files-found: error
+          retention-days: 14
+
   self-contained:
     name: Publish (self-contained)
     runs-on: windows-latest
