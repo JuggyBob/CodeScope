@@ -461,7 +461,10 @@ public sealed partial class ReportViewModel
             {
                 view.Bars.Add(new TimelineBar
                 {
-                    Height = Math.Max(1.5d, Math.Abs(bucket.CodeDelta) * 34 / maxAbs),
+                    // The division is done in floating point: both numbers are
+                    // whole lines, and dividing them as integers would throw
+                    // away the fraction the bar height depends on.
+                    Height = Math.Max(1.5d, Math.Abs(bucket.CodeDelta) * 34d / maxAbs),
                     Positive = bucket.CodeDelta >= 0,
                 });
             }

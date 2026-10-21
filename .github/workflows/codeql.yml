@@ -40,10 +40,17 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          queries: security-and-quality
+          # The security queries. The quality queries are a style linter, and
+          # they report the deliberate catch-alls and the vendored snapshot
+          # as findings, which drowns the ones that matter.
+          queries: security-extended
           # The build is a step of its own, after this one, so the tracer sees
           # the code as it is compiled.
           build-mode: none
+        paths-ignore:
+          - '**/bin/**'
+          - '**/obj/**'
+          - 'vendor/**'
 
       - name: Build
         run: dotnet build CodeScope.sln -c Release

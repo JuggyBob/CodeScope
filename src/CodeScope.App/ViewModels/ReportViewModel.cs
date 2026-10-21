@@ -333,7 +333,9 @@ public sealed partial class ReportViewModel : ViewModelBase
 
     private void RebuildFiles()
     {
-        IEnumerable<ReportFileRow> rows = Data.Files.Select(f => new ReportFileRow(f));
+        // The rows are walked more than once below, so they are materialised
+        // once rather than projected again for every step.
+        IEnumerable<ReportFileRow> rows = Data.Files.Select(f => new ReportFileRow(f)).ToList();
 
         if (!string.IsNullOrWhiteSpace(FileQuery))
         {

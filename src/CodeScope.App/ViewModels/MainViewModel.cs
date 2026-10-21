@@ -1272,7 +1272,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <summary>Reopen a stored run in the dashboard, exactly as it was produced.</summary>
     private void OpenHistoryEntry(HistoryEntryViewModel? item)
     {
-        if (item?.Entry.Data is not { } data)
+        if (item is null || item.Entry?.Data is not { } data)
         {
             return;
         }
