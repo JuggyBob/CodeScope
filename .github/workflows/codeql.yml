@@ -1,0 +1,43 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Once a week, because the dependencies behind the frozen snapshot move.
+    - cron: '30 5 * * 3'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (csharp)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [csharp]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
