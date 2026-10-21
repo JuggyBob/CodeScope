@@ -28,7 +28,7 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: vendor/scc-source/go.mod
           cache: false
