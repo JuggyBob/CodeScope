@@ -42,6 +42,18 @@ Get it from the [releases page](https://github.com/JuggyBob/CodeScope/releases):
 | `CodeScope-portable.zip` | ~11 MB | The application with no installer at all. Unzip it anywhere and run `CodeScope.exe`. |
 | `CodeScope-windows-x64-self-contained.zip` | ~68 MB | The application with the whole .NET runtime inside, so it runs on a clean Windows machine with nothing installed. |
 
+### "Windows protected your PC"
+
+The installer is **not signed with a code-signing certificate** — those cost
+money per year, and this is a free, open-source project. Windows SmartScreen
+therefore shows a blue warning for a downloaded, unsigned executable, and
+Chromium-based browsers mark it as "unverified".
+
+Nothing is wrong with the file. Click **More info → Run anyway**, or check it
+yourself: the release publishes `SHA256SUMS.txt` with the SHA-256 of every
+asset, and the build downloads the .NET runtime installer from Microsoft over
+HTTPS and verifies it against a pinned hash before packing it in.
+
 ---
 
 ## Requirements
